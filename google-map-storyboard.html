@@ -6,7 +6,8 @@
 <template>
   <style>
   </style>
-  <google-maps-api apiKey="{{apiKey}}" on-api-load="{{mapApiLoaded}}" libraries="places,geometry" language="{{language}}"></google-maps-api>
+  <div id="map_canvas"></div>
+  <google-maps-api apiKey="{{apiKey}}" version="3.exp" on-api-load="{{mapApiLoaded}}" libraries="places,geometry"></google-maps-api>
 </template>
 
 <script>
