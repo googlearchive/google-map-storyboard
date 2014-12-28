@@ -2,16 +2,40 @@
 <link rel="import" href="bower_components/google-apis/google-apis.html">
 <link rel="import" href="bower_components/google-map/google-map.html">
 
-<polymer-element name="google-map-storyboard" attributes="">
+<polymer-element name="google-map-storyboard" attributes="apiKey">
 <template>
   <style>
   </style>
+  <div id="map_canvas"></div>
+  <google-maps-api apiKey="{{apiKey}}" version="3.exp" on-api-load="{{mapApiLoaded}}" libraries="places,geometry"></google-maps-api>
 </template>
 
 <script>
   Polymer({
-    created: function() {
-      window.console.log("Created!");
+   
+    /**
+     * The maps api key.
+     *
+     * @attribute name
+     * @type string
+     * @default null
+     */
+    apiKey: null,
+
+    
+    mapApiLoaded: function() {
+      this.map = new google.maps.Map(this.$.map, this.getMapOptions());
+    },
+
+    getMapOptions: function() {
+      var mapOptions = {
+        zoom: this.zoom,
+        mapTypeId: this.mapType,
+        styles: this.styles,
+        maxZoom: Number(this.maxZoom),
+        minZoom: Number(this.minZoom)
+      };
+
   });
 </script>
 </polymer-element>
