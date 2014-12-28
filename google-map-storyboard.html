@@ -1,141 +1,48 @@
 <link rel="import" href="bower_components/polymer/polymer.html">
 <link rel="import" href="bower_components/google-apis/google-apis.html">
-<link rel="import" href="bower_components/google-map/google-map.html">
+<link rel="import" href="storyboard-scene.html">
 
 <polymer-element name="google-map-storyboard" attributes="map">
 <template>
   <style>
+    :host {
+      position: relative;
+      display: block;
+      height: 100%;
+    }
+
+    #map {
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      left: 0;
+    }
   </style>
+    <google-maps-api apiKey="{{apiKey}}" version="3.exp" libraries="places,geometry" on-api-load="{{mapApiLoaded}}"></google-maps-api>
+  <div id='map'> </div>
+  <content id='scenes' select='google-map-scene'></content>
 </template>
-<google-maps-api apiKey="{{apiKey}}" version="3.exp" libraries="places,geometry" on-api-load="{{mapApiLoaded}}"></google-maps-api>
-<content id='scenes' select='google-map-scene'></content>
+
+
 <script>
 (function() {
   Polymer({
-    currentScene: 0,
-    currentLoc: null,
-    line: null,
     scenes: null,
     map: null,
-    forward: true,
-
-    /**
-     * This is the speed of a transition: this was an arbitrarily chosen constant.
-     *
-     */
-    transitionSpeed: 4000,
+    apiKey:null,
 
     mapApiLoaded: function() {
-      this.updateScenes();
-      this.updateLine();
-    },
+      var mapOptions = {
+        center: new google.maps.LatLng(32.1, 127.5),
+        zoom: 10,
+      };
 
-    updateLine: function() {
-      if (this.map && !this.line) {
-        var startPath = new google.maps.MVCArray();
-        if (this.scenes.length) {
-          startPath.push(currentLoc);
-        }
-        var lineOptions = {
-          map:this.map,
-          geodesic: true,
-          path: startPath
-        };
-        this.line = new google.maps.Polyline(lineOptions);
-      }
-    },
-
-    updateScenes: function() {
-      this.scenes = Array.prototype.slice.call(
-          this.$.scenes.getDistributedNodes());
-      // Set the map on each scene.
-      if (this.scenes.length && this.map) {
-        for (var i = 0, scene; scene = this.scenes[i]; ++i) {
-          scene.map = this.map;
-        }
-
-        // This will need to be changed to look at the 
-        if (this.currentScene < 0) {
-          this.currentScene = 0;
-        } else if (this.currentScene > this.scenes.length) {
-          this.currentScene = this.scenes.length -1;
-        }
-
-        if (this.currentScene < this.scenes.length){
-          this.currentLoc = this.scenes[currentScene].location;
-          this.map.panTo(currentLoc);
-        }
-
-      }
-    },
-
-    updateCurrentScene: function() {
-      if (this.forward && this.currentScene < (this.scenes.length -1) ) {
-        this.currentScene++;
-      } else if (!this.forward && this.currentScene > 0){
-        this.currentScene--;
-      }
-      this.currentLoc = this.scenes[this.currentScene].location;
-    },
-
-    startAnimation: function() {
-      if (this.map && this.line) {
-        var points = this.line.getPath();
-        if (!this.forward && points.length < 2 ) {
-          return;
-        }
-        var prevLoc = points.getAt(points.length -1);
-        if (this.forward) {
-          points.push(prevLoc);
-        }
-
-        var bounds = new google.maps.LatLngBounds();
-        bounds.extend(this.currentLoc);
-        bounds.extend(prevLoc);
-        this.map.fitBounds(bounds);
-        this.async( function(){
-          this.startTime = window['mozAnimationStartTime'] || Date.now();
-          this.intervalId = window.requestAnimationFrame(step.bind(this)); 
-        });
-      }
-
-    },
-    stopAnimation: function() {
-      if (this.intervalId) {
-        window.cancelAnimationFrame(this.intervalId);
-        this.intervalId = null;
-      }
+      this.map = new google.maps.Map(this.$.map, mapOptions);
     },
 
 
   });
-
-  function step() {
-    var points = this.line.getPath();
-    var endIndex = points.length -1;
-
-    var diffTime = Date.now() - this.startTime;
-    var offset = (diffTime/this.transitionSpeed);
-    if (offset >= 1) {
-      if (this.forward) {
-        points.setAt(endIndex, this.currentLoc);
-        this.stopAnimation();
-        return; 
-      }
-      points.pop();
-      this.stopAnimation();
-      return;
-    }
-    if (!this.forward) {
-      offset = 1- offset;
-    }
-    var wayPoint = new google.maps.geometry.spherical.interpolate(startPos, this.currentLoc, offset);
-
-    this.async( function(){
-      points.setAt(endIndex, wayPoint);
-      this.intervalId = window.requestAnimationFrame(step.bind(this)); 
-    });
-  }
-}
+})();
 </script>
 </polymer-element>
