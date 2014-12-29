@@ -10,7 +10,6 @@
       display: block;
       height: 100%;
     }
-
     #map {
       position: absolute;
       top: 0;
@@ -19,7 +18,7 @@
       left: 0;
     }
   </style>
-    <google-maps-api apiKey="{{apiKey}}" version="3.exp" libraries="places,geometry" on-api-load="{{mapApiLoaded}}"></google-maps-api>
+  <google-maps-api apiKey="{{apiKey}}" version="3.exp" libraries="places,geometry" on-api-load="{{mapApiLoaded}}"></google-maps-api>
   <div id='map'> </div>
   <content id='scenes' select='google-map-scene'></content>
 </template>
@@ -28,23 +27,55 @@
 <script>
 (function() {
   Polymer({
+    /**
+     * An array of the google-map-scene's contained within the storyboard.
+     * 
+     * @property scenes
+     * @type Array of google-map-scene
+     * @default null
+     */
     scenes: null,
+
+    /**
+     * The google map used in the storyboard.
+     * 
+     * @property map
+     * @type google.maps.Map
+     * @default null
+     */
     map: null,
+
+    /**
+     * The Google Map API key to be used. To obtain an API key, see developers.google.com/maps/documentation/javascript/tutorial#api_key.
+     * 
+     * @property apiKey
+     * @default null
+     */
     apiKey:null,
 
     /**
-     * This is the index of the current scene.
+     * This is the index of the current scene. 
+     *
+     * This method of handling current should only be used in the linear case.
+     * TODO: Modify so that the current is accessed using id's.
+     * 
+     * @property current
+     * @type Number
+     * @default 0
      */
-    currentScene: 0,
+    current: 0,
 
     /**
-     * The location at the current scene.
+     * The location of the current scene.
+     *
+     * @property currentLoc
+     * @type google.maps.LatLng
+     * @default null
      */
     currentLoc: null,
 
     mapApiLoaded: function() {
       this.updateScenes();
-
     },
 
     initialiseMap: function() {
@@ -63,29 +94,36 @@
       this.index = 0; 
       this.updateLocations();
     },
+
+    /*
+     * This function is recursively called to get the LatLng location of each of the scenes (using geocoding).
+     *
+     */
     updateLocations: function() {
       if (this.index <this.scenes.length ) {
-        var scene = this.scenes[this.index];
         var geocoder = new google.maps.Geocoder();
-        geocoder.geocode( {address: scene.address}, function(place, status) {
+        var address = this.scenes[this.index].address;
+        geocoder.geocode( {address: address}, function(place, status) {
           if (status == google.maps.GeocoderStatus.OK) {
-            var location = place[0].geometry.location;
-            this.scenes[this.index].location = location;
+            this.scenes[this.index].location = place[0].geometry.location;
           }
           this.index++;
           this.updateLocations();
         }.bind(this));
       } else {
         this.updateCurrentLoc();
+        this.index = null;
       }
     },
-    updateCurrentLoc: function(location) {
-      if (!this.currentLoc) {
-        this.currentLoc = this.scenes[this.currentScene].location;
-        this.initialiseMap();
-      }
-    }
 
+    updateCurrentLoc: function() {
+      if (!this.currentLoc && typeof this.current === 'number') {
+        this.currentLoc = this.scenes[this.current].location;
+      }
+      if (!this.map) {
+        this.initialiseMap();        
+      }
+    },
   });
 })();
 </script>
