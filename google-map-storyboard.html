@@ -2,7 +2,7 @@
 <link rel="import" href="bower_components/google-apis/google-apis.html">
 <link rel="import" href="google-map-scene.html">
 
-<polymer-element name="google-map-storyboard" attributes="map">
+<polymer-element name="google-map-storyboard" attributes="apiKey">
 <template>
   <style>
     :host {
@@ -34,10 +34,9 @@
 
     mapApiLoaded: function() {
       var mapOptions = {
-        center: new google.maps.LatLng(32.1, 127.5),
+        center: new google.maps.LatLng(0, 0),
         zoom: 10,
       };
-
       this.map = new google.maps.Map(this.$.map, mapOptions);
     },
 

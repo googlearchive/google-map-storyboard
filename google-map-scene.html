@@ -6,7 +6,7 @@
 <template>
   <style>
   </style>
-  <google-maps-api version="3.exp" libraries="places,geometry" on-api-load="{{updateAddress}}"></google-maps-api>
+  <google-maps-api apiKey="{{apiKey}}" version="3.exp" libraries="places,geometry" on-api-load="{{updateAddress}}"></google-maps-api>
 </template>
 
 <script>
@@ -39,7 +39,6 @@
         geocoder.geocode( {address: this.address}, function(place, status) {
           if (status == google.maps.GeocoderStatus.OK) {
             this.location = place[0].geometry.location;
-            window.console.log('Location ready: '+ this.address);
           }
         }.bind(this));
         this.onMutation(this, this.updateAddress);
