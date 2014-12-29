@@ -38,8 +38,20 @@
         zoom: 10,
       };
       this.map = new google.maps.Map(this.$.map, mapOptions);
+      this.updateScenes();
     },
+    updateScenes: function() {
+      this.scenes = Array.prototype.slice.call(
+          this.$.scenes.getDistributedNodes());
 
+      // Set the map on each scene.
+      if (this.scenes.length && this.map) {
+        for (var i = 0, scene; scene = this.scenes[i]; ++i) {
+          scene.map = this.map;
+        }
+      }
+
+    },
 
   });
 })();
