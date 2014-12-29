@@ -5,11 +5,13 @@
 <polymer-element name="google-map-storyboard" attributes="apiKey">
 <template>
   <style>
+
     :host {
       position: relative;
       display: block;
       height: 100%;
     }
+
     #map {
       position: absolute;
       top: 0;
@@ -18,9 +20,12 @@
       left: 0;
     }
   </style>
+
   <google-maps-api apiKey="{{apiKey}}" version="3.exp" libraries="places,geometry" on-api-load="{{mapApiLoaded}}"></google-maps-api>
-  <div id='map'> </div>
-  <content id='scenes' select='google-map-scene'></content>
+
+  <div id="map"></div>
+
+  <content id="scenes" select="google-map-scene"></content>
 </template>
 
 
@@ -28,7 +33,7 @@
 (function() {
   Polymer({
     /**
-     * An array of the google-map-scene's contained within the storyboard.
+     * Array of the google-map-scenes contained within the storyboard.
      * 
      * @property scenes
      * @type Array of google-map-scene
@@ -46,18 +51,16 @@
     map: null,
 
     /**
-     * The Google Map API key to be used. To obtain an API key, see developers.google.com/maps/documentation/javascript/tutorial#api_key.
+     * The Google Map API key. To obtain an API key, 
+     * see developers.google.com/maps/documentation/javascript/tutorial#api_key.
      * 
      * @property apiKey
      * @default null
      */
-    apiKey:null,
+    apiKey: null,
 
     /**
-     * This is the index of the current scene. 
-     *
-     * This method of handling current should only be used in the linear case.
-     * TODO: Modify so that the current is accessed using id's.
+     * The index of the current scene.
      * 
      * @property current
      * @type Number
@@ -66,63 +69,59 @@
     current: 0,
 
     /**
-     * The location of the current scene.
+     * The current scene. Initialised to the first scene.
      *
-     * @property currentLoc
-     * @type google.maps.LatLng
+     * @property currentScene
+     * @type google-map-scene
      * @default null
      */
-    currentLoc: null,
+    currentScene: null,
 
     mapApiLoaded: function() {
       this.updateScenes();
     },
 
     initialiseMap: function() {
-      if (!this.map && this.currentLoc) {
-        var mapOptions = {
-          center: this.currentLoc,
-          zoom: 10,
-        };
-        this.map = new google.maps.Map(this.$.map, mapOptions);
+      if (!this.map) {
+        this.map = new google.maps.Map(this.$.map, {});
       }
     },
 
     updateScenes: function() {
       this.scenes = Array.prototype.slice.call(
           this.$.scenes.getDistributedNodes());
-      this.index = 0; 
       this.updateLocations();
     },
 
     /*
-     * This function is recursively called to get the LatLng location of each of the scenes (using geocoding).
-     *
+     * This function geocodes the addresses of each scene.
      */
     updateLocations: function() {
-      if (this.index <this.scenes.length ) {
-        var geocoder = new google.maps.Geocoder();
-        var address = this.scenes[this.index].address;
-        geocoder.geocode( {address: address}, function(place, status) {
+      this.index = 0;
+      if (!this.geocoder) {
+        this.geocoder = new google.maps.Geocoder();
+      }
+      for(var i = 0; i < this.scenes.length; ++i) {
+        var address = this.scenes[i].address;
+        this.geocoder.geocode( {address: address}, function(place, status) {
           if (status == google.maps.GeocoderStatus.OK) {
             this.scenes[this.index].location = place[0].geometry.location;
           }
+          if (this.index < 1) {
+            this.initialiseMap();
+            this.updateCurrentLoc();
+          }
           this.index++;
-          this.updateLocations();
         }.bind(this));
-      } else {
-        this.updateCurrentLoc();
-        this.index = null;
       }
     },
 
     updateCurrentLoc: function() {
-      if (!this.currentLoc && typeof this.current === 'number') {
-        this.currentLoc = this.scenes[this.current].location;
+      if (typeof this.current === "number") {
+        this.currentScene = this.scenes[this.current];
       }
-      if (!this.map) {
-        this.initialiseMap();        
-      }
+      this.map.panTo(this.currentScene.location);
+      this.map.setZoom(this.currentScene.zoom);
     },
   });
 })();
