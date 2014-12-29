@@ -20,7 +20,6 @@
      */
     address: null,
     location:null,
-    map:null,
 
     /**
      * The zoom of the map that the transition zooms to.
@@ -30,24 +29,6 @@
      * @default null
      */
     zoom: 10,
-    
-    mapChanged: function() {
-      if (this.map && this.map instanceof google.maps.Map) {
-   //     this.updateAddress();
-      }
-    },
-    updateAddress: function(){
-      if (this.address) {
-        var geocoder = new google.maps.Geocoder();
-        geocoder.geocode( {address: this.address}, function(place, status) {
-          if (status == google.maps.GeocoderStatus.OK) {
-            this.location = place[0].geometry.location;
-          }
-        }.bind(this));
-        this.onMutation(this, this.updateAddress);
-      }
-    }
-    
   });
 </script>
 </polymer-element>
