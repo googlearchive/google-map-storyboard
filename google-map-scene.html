@@ -5,7 +5,15 @@
 <polymer-element name="google-map-scene" attributes="address zoom">
 <template>
   <style>
+    #sceneMedia {
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      left: 0;
+    }
   </style>
+  <div id='sceneMedia'></div>
 </template>
 
 <script>
@@ -28,18 +36,15 @@
      * @default null
      */
     zoom: 10,
-    
-    observe: {
-      address: 'updateAddress'
+
+    ready: function() {
+      this.updateContent();
     },
 
-    updateAddress: function(){
-      var geocoder = new google.maps.Geocoder();
-      geocoder.geocode( {address: this.address}, function(place, status) {
-        if (status == google.maps.GeocoderStatus.OK) {
-          this.location = place[0].geometry.location;
-        }
-      }.bind(this));
+    updateContent: function(){
+      var media = this.$.sceneMedia;
+      media.innerHTML=this.innerHTML;
+      this.onMutation(this, this.updateContent);
     }
     
   });
