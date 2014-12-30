@@ -38,12 +38,8 @@
   <google-maps-api apiKey="{{apiKey}}" version="3.exp" libraries="places,geometry" on-api-load="{{mapApiLoaded}}"></google-maps-api>
 
   <div id="map">
-    <div id="prev">
-      <button title="Previous" on-click="{{getPrev}}"><</button>
-    </div>
-    <div id="next">
-      <button title="Next" on-click="{{getNext}}">></button>
-    </div>
+    <button id="prev" title="Previous" on-click="{{getPrev}}"><</button>
+    <button id="next" title="Next" on-click="{{getNext}}">></button>
   </div>
 
   <content id="scenes" select="google-map-scene"></content>
@@ -115,6 +111,7 @@
         this.map.controls[google.maps.ControlPosition.LEFT_CENTER].push(this.$.prev);
         this.map.controls[google.maps.ControlPosition.RIGHT_CENTER].push(this.$.next);
         this.$.map.style.visibility = "visible";
+        this.updateControls();
       }
     },
 
@@ -150,6 +147,7 @@
       }
       this.map.panTo(this.currentScene.location);
       this.map.setZoom(this.currentScene.zoom);
+      this.updateControls();
     },
 
     getPrev: function() {
@@ -163,6 +161,22 @@
       if (this.current < this.scenes.length -1) {
         this.current++;
         this.updateCurrentLoc();
+      }
+    },
+
+    updateControls: function() {
+      var control = this.map.controls[google.maps.ControlPosition.LEFT_CENTER];
+      if (this.current < 1 ) {
+        var prev = control.pop();
+      } else if ( !control.length ) {
+        control.push(this.$.prev);
+      }
+
+      control = this.map.controls[google.maps.ControlPosition.RIGHT_CENTER];
+      if (this.current > this.scenes.length - 2) {
+        var next = control.pop();
+      } else if (!control.length) {
+        control.push(this.$.next);
       }
     }
 
