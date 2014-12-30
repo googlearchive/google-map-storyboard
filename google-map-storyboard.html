@@ -115,6 +115,7 @@
         this.map.controls[google.maps.ControlPosition.LEFT_CENTER].push(this.$.prev);
         this.map.controls[google.maps.ControlPosition.RIGHT_CENTER].push(this.$.next);
         this.$.map.style.visibility = "visible";
+        this.updateControls();
       }
     },
 
@@ -150,6 +151,7 @@
       }
       this.map.panTo(this.currentScene.location);
       this.map.setZoom(this.currentScene.zoom);
+      this.updateControls();
     },
 
     getPrev: function() {
@@ -163,6 +165,22 @@
       if (this.current < this.scenes.length -1) {
         this.current++;
         this.updateCurrentLoc();
+      }
+    },
+
+    updateControls: function() {
+      var control = this.map.controls[google.maps.ControlPosition.LEFT_CENTER];
+      if (this.current < 1 ) {
+        var prev = control.pop();
+      } else if ( !control.length ) {
+        control.push(this.$.prev);
+      }
+
+      control = this.map.controls[google.maps.ControlPosition.RIGHT_CENTER];
+      if (this.current > this.scenes.length - 2) {
+        var next = control.pop();
+      } else if (!control.length) {
+        control.push(this.$.next);
       }
     }
 
