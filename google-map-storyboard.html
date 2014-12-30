@@ -19,6 +19,7 @@
       bottom: 0;
       left: 0;
     }
+    
   </style>
 
   <google-maps-api apiKey="{{apiKey}}" version="3.exp" libraries="places,geometry" on-api-load="{{mapApiLoaded}}"></google-maps-api>
@@ -104,7 +105,7 @@
      */
     updateLocations: function() {
       this.geocoder = this.geocoder || new google.maps.Geocoder();
-      for(var i=0; i < this.scenes.length; ++i) {
+      for (var i = 0; i < this.scenes.length; ++i) {
         var address = this.scenes[i].address;
         (function(index) {
           this.geocoder.geocode( {address: address}, function(place, status) {
@@ -128,7 +129,8 @@
       }
       this.map.panTo(this.currentScene.location);
       this.map.setZoom(this.currentScene.zoom);
-    },
+    }
+
   });
 })();
 </script>
