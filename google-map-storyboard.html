@@ -1,17 +1,73 @@
 <link rel="import" href="bower_components/polymer/polymer.html">
 <link rel="import" href="bower_components/google-apis/google-apis.html">
-<link rel="import" href="bower_components/google-map/google-map.html">
+<link rel="import" href="google-map-scene.html">
 
-<polymer-element name="google-map-storyboard" attributes="">
+<polymer-element name="google-map-storyboard" attributes="apiKey">
 <template>
   <style>
+
+    :host {
+      position: relative;
+      display: block;
+      height: 100%;
+    }
+
+    #map {
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      left: 0;
+    }
+    
   </style>
+
+  <google-maps-api apiKey="{{apiKey}}" version="3.exp" libraries="places,geometry" on-api-load="{{mapApiLoaded}}"></google-maps-api>
+
+  <div id="map"></div>
+
+  <content id="scenes" select="google-map-scene"></content>
 </template>
 
+
 <script>
+(function() {
   Polymer({
-    created: function() {
-      window.console.log("Created!");
+
+    /**
+     * The google map used in the storyboard.
+     * 
+     * @property map
+     * @type google.maps.Map
+     * @default null
+     */
+    map: null,
+
+    /**
+     * The Google Map API key. To obtain an API key, 
+     * see developers.google.com/maps/documentation/javascript/tutorial#api_key.
+     * 
+     * @property apiKey
+     * @type string
+     * @default null
+     */
+    apiKey: null,
+
+    mapApiLoaded: function() {
+      this.initialiseMap();
+    },
+
+    initialiseMap: function() {
+      if (!this.map) {
+        var mapOptions = {
+          center: new google.maps.LatLng(42, 0),
+          zoom: 10
+        };
+        this.map = new google.maps.Map(this.$.map, mapOptions);
+      }
+    }
+
   });
+})();
 </script>
 </polymer-element>
