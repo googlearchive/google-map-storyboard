@@ -83,7 +83,12 @@
 
     initialiseMap: function() {
       if (!this.map) {
-        this.map = new google.maps.Map(this.$.map, {});
+        this.currentScene = this.scenes[this.current];
+        var mapOptions = {
+          center: this.currentScene.location,
+          zoom: this.currentScene.zoom
+        };
+        this.map = new google.maps.Map(this.$.map, mapOptions);
       }
     },
 
@@ -109,7 +114,6 @@
           }
           if (this.index < 1) {
             this.initialiseMap();
-            this.updateCurrentLoc();
           }
           this.index++;
         }.bind(this));
