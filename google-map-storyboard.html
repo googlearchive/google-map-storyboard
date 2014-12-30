@@ -35,6 +35,15 @@
   Polymer({
 
     /**
+     * Array of the google-map-scenes contained within the storyboard.
+     * 
+     * @property scenes
+     * @type Array.google-map-scene
+     * @default null
+     */
+    scenes: null,
+
+    /**
      * The google map used in the storyboard.
      * 
      * @property map
@@ -53,18 +62,71 @@
      */
     apiKey: null,
 
+    /**
+     * The index of the current scene.
+     * 
+     * @property current
+     * @type Number
+     * @default 0
+     */
+    current: 0,
+
+    /**
+     * The current scene. Initialised to the first scene.
+     *
+     * @property currentScene
+     * @type google-map-scene
+     * @default null
+     */
+    currentScene: null,
+
     mapApiLoaded: function() {
-      this.initialiseMap();
+      this.updateScenes();
     },
 
     initialiseMap: function() {
       if (!this.map) {
+        this.currentScene = this.scenes[this.current];
         var mapOptions = {
-          center: new google.maps.LatLng(42, 0),
-          zoom: 10
+          center: this.currentScene.location,
+          zoom: this.currentScene.zoom
         };
         this.map = new google.maps.Map(this.$.map, mapOptions);
       }
+    },
+
+    updateScenes: function() {
+      this.scenes = Array.prototype.slice.call(
+          this.$.scenes.getDistributedNodes());
+      this.updateLocations();
+    },
+
+    updateLocations: function() {
+      this.geocoder = this.geocoder || new google.maps.Geocoder();
+      for (var i = 0; i < this.scenes.length; ++i) {
+        var address = this.scenes[i].address;
+        (function(index) {
+          this.geocoder.geocode( {address: address}, function(place, status) {
+            if (status == google.maps.GeocoderStatus.OK) {
+              var scene = this.scenes[index];
+              scene.location = place[0].geometry.location;
+              if (index === this.current) {
+                this.initialiseMap();
+              }
+            } else if (index === this.current) {
+              this.current++;
+            }
+          }.bind(this));
+        }.bind(this))(i);
+      }
+    },
+
+    updateCurrentLoc: function() {
+      if (typeof this.current === "number") {
+        this.currentScene = this.scenes[this.current];
+      }
+      this.map.panTo(this.currentScene.location);
+      this.map.setZoom(this.currentScene.zoom);
     }
 
   });
