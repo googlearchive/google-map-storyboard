@@ -36,7 +36,7 @@
      * Array of the google-map-scenes contained within the storyboard.
      * 
      * @property scenes
-     * @type Array of google-map-scene
+     * @type Array.google-map-scene
      * @default null
      */
     scenes: null,
@@ -55,6 +55,7 @@
      * see developers.google.com/maps/documentation/javascript/tutorial#api_key.
      * 
      * @property apiKey
+     * @type string
      * @default null
      */
     apiKey: null,
@@ -102,21 +103,22 @@
      * This function geocodes the addresses of each scene.
      */
     updateLocations: function() {
-      this.index = 0;
-      if (!this.geocoder) {
-        this.geocoder = new google.maps.Geocoder();
-      }
-      for(var i = 0; i < this.scenes.length; ++i) {
+      this.geocoder = this.geocoder || new google.maps.Geocoder();
+      for(var i=0; i < this.scenes.length; ++i) {
         var address = this.scenes[i].address;
-        this.geocoder.geocode( {address: address}, function(place, status) {
-          if (status == google.maps.GeocoderStatus.OK) {
-            this.scenes[this.index].location = place[0].geometry.location;
-          }
-          if (this.index < 1) {
-            this.initialiseMap();
-          }
-          this.index++;
-        }.bind(this));
+        (function(index) {
+          this.geocoder.geocode( {address: address}, function(place, status) {
+            if (status == google.maps.GeocoderStatus.OK) {
+              var scene = this.scenes[index];
+              scene.location = place[0].geometry.location;
+              if (index === this.current) {
+                this.initialiseMap();
+              }
+            } else if (index === this.current) {
+              this.current++;
+            }
+          }.bind(this));
+        }.bind(this))(i);
       }
     },
 
