@@ -5,6 +5,7 @@
 <polymer-element name="google-map-scene" attributes="address zoom">
 <template>
   <style>
+  
     #sceneMedia {
       position: absolute;
       top: 0;
@@ -12,8 +13,9 @@
       bottom: 0;
       left: 0;
     }
+    
   </style>
-  <div id='sceneMedia'></div>
+  <div id="sceneMedia"></div>
 </template>
 
 <script>
@@ -41,9 +43,9 @@
       this.updateContent();
     },
 
-    updateContent: function(){
+    updateContent: function() {
       var media = this.$.sceneMedia;
-      media.innerHTML=this.innerHTML;
+      media.innerHTML = this.innerHTML;
       this.onMutation(this, this.updateContent);
     }
     
