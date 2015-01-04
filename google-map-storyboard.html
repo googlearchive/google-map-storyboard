@@ -2,7 +2,7 @@
 <link rel="import" href="bower_components/google-apis/google-apis.html">
 <link rel="import" href="google-map-scene.html">
 
-<polymer-element name="google-map-storyboard" attributes="apiKey">
+<polymer-element name="google-map-storyboard" attributes="apiKey current">
 <template>
   <style>
 
@@ -79,13 +79,22 @@
     apiKey: null,
 
     /**
+     * The id of the scene to be shown.
+     * 
+     * @attribute current
+     * @type String
+     * @default null
+     */
+    current: null,
+
+    /**
      * The index of the current scene.
      * 
-     * @property current
+     * @property index
      * @type Number
      * @default 0
      */
-    current: 0,
+    index: 0,
 
     /**
      * The current scene. Initialised to the first scene.
@@ -102,7 +111,7 @@
 
     initialiseMap: function() {
       if (!this.map) {
-        this.currentScene = this.scenes[this.current];
+        this.indexChanged();
         var mapOptions = {
           center: this.currentScene.location,
           zoom: this.currentScene.zoom
@@ -127,53 +136,62 @@
         var address = this.scenes[i].address;
         (function(index) {
           this.geocoder.geocode( {address: address}, function(place, status) {
+            var scene = this.scenes[index];
+            scene.sceneNum = index;
             if (status == google.maps.GeocoderStatus.OK) {
-              var scene = this.scenes[index];
               scene.location = place[0].geometry.location;
-              if (index === this.current) {
+              if (scene.id === this.current || this.index === index) {
+                this.index = index;
                 this.initialiseMap();
               }
-            } else if (index === this.current) {
-              this.current++;
             }
           }.bind(this));
         }.bind(this))(i);
       }
     },
 
-    updateCurrentLoc: function() {
-      if (typeof this.current === "number") {
-        this.currentScene = this.scenes[this.current];
+    currentChanged: function() {
+      scene = document.getElementById(this.current);
+      if (!scene) {
+        this.current = null;
+        return;
       }
-      this.map.panTo(this.currentScene.location);
-      this.map.setZoom(this.currentScene.zoom);
-      this.updateControls();
+      this.currentScene = scene;
+      this.index = this.currentScene.sceneNum;
+    },
+
+    indexChanged: function() {
+      this.currentScene = (this.scenes && this.scenes[this.index]) || this.currentScene;
+      this.index = this.currentScene.sceneNum;
+      if (this.map) {
+        this.map.panTo(this.currentScene.location || this.map.getCenter());
+        this.map.setZoom(this.currentScene.zoom);
+        this.updateControls();
+      }
     },
 
     getPrev: function() {
-      if (this.current > 0) {
-        this.current--;
-        this.updateCurrentLoc();
+      if (this.index > 0) {
+        this.index--;
       }
     },
 
     getNext: function() {
-      if (this.current < this.scenes.length -1) {
-        this.current++;
-        this.updateCurrentLoc();
+      if (this.index < this.scenes.length -1) {
+        this.index++;
       }
     },
 
     updateControls: function() {
       var control = this.map.controls[google.maps.ControlPosition.LEFT_CENTER];
-      if (this.current < 1 ) {
+      if (this.index < 1 ) {
         var prev = control.pop();
       } else if ( !control.length ) {
         control.push(this.$.prev);
       }
 
       control = this.map.controls[google.maps.ControlPosition.RIGHT_CENTER];
-      if (this.current > this.scenes.length - 2) {
+      if (this.index > this.scenes.length - 2) {
         var next = control.pop();
       } else if (!control.length) {
         control.push(this.$.next);
