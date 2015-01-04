@@ -196,6 +196,22 @@
       } else if (!control.length) {
         control.push(this.$.next);
       }
+    },
+
+    updateControls: function() {
+      var control = this.map.controls[google.maps.ControlPosition.LEFT_CENTER];
+      if (this.current < 1 ) {
+        var prev = control.pop();
+      } else if ( !control.length ) {
+        control.push(this.$.prev);
+      }
+
+      control = this.map.controls[google.maps.ControlPosition.RIGHT_CENTER];
+      if (this.current > this.scenes.length - 2) {
+        var next = control.pop();
+      } else if (!control.length) {
+        control.push(this.$.next);
+      }
     }
 
   });
