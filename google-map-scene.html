@@ -5,7 +5,19 @@
 <polymer-element name="google-map-scene" attributes="address zoom">
 <template>
   <style>
+
+    #sceneMedia {
+      position: absolute;
+      width:1px;
+      white-space: nowrap;
+      top: 50%;
+      right: 50%;
+      bottom: 50%;
+      left: 50%;
+    }
+
   </style>
+  <div id="sceneMedia"></div>
 </template>
 
 <script>
@@ -27,7 +39,37 @@
      * @type number
      * @default null
      */
-    zoom: 10
+    zoom: 10,
+
+    ready: function() {
+      this.updateContent();
+    },
+
+    updateContent: function() {
+      var media = this.$.sceneMedia;
+      media.innerHTML = this.innerHTML;
+      this.onMutation(this, this.updateContent);
+      if (this.isActive()) {
+        media.style.display = "block";
+      }
+      else {
+        media.style.display = "none";
+      }
+    },
+
+    getStoryboard: function() {
+      var storyboard = this.parentNode;
+      return storyboard;
+    },
+
+    isActive: function() {
+      var story = this.getStoryboard();
+      if (story == null) {
+        return false;
+      }
+      var scene = story.currentScene;
+      return (this == scene);
+    }
     
   });
 </script>
