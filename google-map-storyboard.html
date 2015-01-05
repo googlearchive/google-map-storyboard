@@ -19,12 +19,23 @@
       bottom: 0;
       left: 0;
     }
+
+    #sceneMedia {
+      position: relative;
+      z-index: 100000;
+      width: 200px;
+      word-break: break-all; 
+      word-wrap: break-word;
+      margin-left: auto;
+      margin-right: auto;
+    }
     
   </style>
 
   <google-maps-api apiKey="{{apiKey}}" version="3.exp" libraries="places,geometry" on-api-load="{{mapApiLoaded}}"></google-maps-api>
 
   <div id="map"></div>
+  <div id="sceneMedia"></div>
 
   <content id="scenes" select="google-map-scene"></content>
 </template>
@@ -99,6 +110,18 @@
       this.updateLocations();
     },
 
+    updateContent: function() {
+      var media = this.$.sceneMedia;
+      media.innerHTML = this.currentScene.innerHTML;
+      //this.onMutation(this, this.updateContent);
+      if (this.currentScene.isActive()) {
+        media.style.display = "block";
+      }
+      else {
+        media.style.display = "none";
+      }
+    },
+
     updateLocations: function() {
       this.geocoder = this.geocoder || new google.maps.Geocoder();
       for (var i = 0; i < this.scenes.length; ++i) {
@@ -123,14 +146,12 @@
       if (typeof this.current === "number") {
         var prev = this.currentScene;
         this.currentScene = this.scenes[this.current];
-        if (prev) {
-          prev.updateContent();
-        }
-        this.currentScene.updateContent();
+        this.updateContent();
       }
       this.map.panTo(this.currentScene.location);
       this.map.setZoom(this.currentScene.zoom);
     }
+
 
   });
 })();
