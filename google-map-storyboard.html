@@ -110,13 +110,11 @@ Fired when the storybord's google map is ready to be rendered.
 
     initialiseMap: function() {
       if (!this.map) {
-        this.currentScene = this.scenes[this.current];
         var mapOptions = {
-          center: this.currentScene.location,
-          zoom: this.currentScene.zoom
         };
         this.map = new google.maps.Map(this.$.map, mapOptions);
-        this.fire("google-map-storyboard-ready");
+        this.fire('google-map-storyboard-ready');
+        this.updateCurrentLoc();
       }
     },
 
@@ -148,7 +146,12 @@ Fired when the storybord's google map is ready to be rendered.
 
     updateCurrentLoc: function() {
       if (typeof this.current === "number") {
+        var prev = this.currentScene;
         this.currentScene = this.scenes[this.current];
+        if (prev) {
+          prev.updateContent();
+        }
+        this.currentScene.updateContent();
       }
       this.map.panTo(this.currentScene.location);
       this.map.setZoom(this.currentScene.zoom);
