@@ -39,15 +39,6 @@
       return storyboard;
     },
 
-    isActive: function() {
-      var story = this.getStoryboard();
-      if (story == null) {
-        return false;
-      }
-      var scene = story.currentScene;
-      return (this == scene);
-    }
-    
   });
 </script>
 </polymer-element>
