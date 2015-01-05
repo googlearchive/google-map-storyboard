@@ -136,9 +136,8 @@
         var address = this.scenes[i].address;
         (function(index) {
           this.geocoder.geocode( {address: address}, function(place, status) {
-            var scene = this.scenes[index];
-            scene.sceneNum = index;
             if (status == google.maps.GeocoderStatus.OK) {
+              var scene = this.scenes[index];
               scene.location = place[0].geometry.location;
               if (scene.id === this.current || this.index === index) {
                 this.index = index;
@@ -157,12 +156,11 @@
         return;
       }
       this.currentScene = scene;
-      this.index = this.currentScene.sceneNum;
+      this.index = (this.scenes && this.scenes.indexOf(scene)) || null;
     },
 
     indexChanged: function() {
       this.currentScene = (this.scenes && this.scenes[this.index]) || this.currentScene;
-      this.index = this.currentScene.sceneNum;
       if (this.map) {
         this.map.panTo(this.currentScene.location || this.map.getCenter());
         this.map.setZoom(this.currentScene.zoom);
