@@ -98,14 +98,16 @@ Fired when the storybord's google map is ready to be rendered.
      */
     apiKey: null,
 
-    /**
-     * The id of the scene to be shown.
-     * 
-     * @attribute current
-     * @type String
-     * @default null
-     */
-    current: null,
+    publish: {
+      /**
+       * The id of the scene to be shown.
+       * 
+       * @attribute current
+       * @type String
+       * @default null
+       */
+      current: {value: null, reflect: true}
+    },
 
     /**
      * The index of the current scene.
@@ -137,8 +139,10 @@ Fired when the storybord's google map is ready to be rendered.
           zoom: this.currentScene.zoom
         };
         this.map = new google.maps.Map(this.$.map, mapOptions);
-        this.makeButton("prev", "Previous", "<", google.maps.ControlPosition.LEFT_CENTER, this.getPrev);
-        this.makeButton("next", "Next", ">", google.maps.ControlPosition.RIGHT_CENTER, this.getNext);
+        this.makeButton("prev", "Previous", "<", 
+            google.maps.ControlPosition.LEFT_CENTER, this.getPrev);
+        this.makeButton("next", "Next", ">", 
+            google.maps.ControlPosition.RIGHT_CENTER, this.getNext);
         this.updateControls();
         this.fire('google-map-storyboard-ready');
       }
@@ -159,7 +163,7 @@ Fired when the storybord's google map is ready to be rendered.
             if (status == google.maps.GeocoderStatus.OK) {
               var scene = this.scenes[index];
               scene.location = place[0].geometry.location;
-              if (scene.id === this.current || this.index === index) {
+              if (scene === this.currentScene || this.index === index) {
                 this.index = index;
                 this.initialiseMap();
               }
@@ -179,7 +183,9 @@ Fired when the storybord's google map is ready to be rendered.
     },
 
     indexChanged: function() {
-      this.currentScene = (this.scenes && this.scenes[this.index]) || this.currentScene;
+      this.currentScene = (this.scenes && this.scenes[this.index]) || 
+          this.currentScene;
+      this.current = this.currentScene.id;
       if (this.map) {
         this.map.panTo(this.currentScene.location || this.map.getCenter());
         this.map.setZoom(this.currentScene.zoom);
