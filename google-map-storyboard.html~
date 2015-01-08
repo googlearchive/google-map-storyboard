@@ -187,7 +187,6 @@ Fired when the storybord's google map is ready to be rendered.
       }
       else {
         media.innerHTML = this.currentScene.innerHTML;
-window.console.log(media.innerHTML);
         image.style.display = "none";
         media.style.display = "block";
       }
