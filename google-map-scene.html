@@ -16,7 +16,7 @@ The innerHTML of each scene is rendered at this location.
 <link rel="import" href="bower_components/google-apis/google-apis.html">
 <link rel="import" href="bower_components/google-map/google-map.html">
 
-<polymer-element name="google-map-scene" attributes="address zoom">
+<polymer-element name="google-map-scene" attributes="address zoom isImage">
 <template>
   <style>
 
@@ -47,24 +47,20 @@ The innerHTML of each scene is rendered at this location.
      */
     zoom: 10,
 
-    ready: function() {
-      this.updateContent();
-    },
+    /**
+     * Is the content an image
+     *
+     * @attribute isImage
+     * @type boolean
+     * @default false
+     */
+    isImage: false,
 
     getStoryboard: function() {
       var storyboard = this.parentNode;
       return storyboard;
     },
 
-    isActive: function() {
-      var story = this.getStoryboard();
-      if (story == null) {
-        return false;
-      }
-      var scene = story.currentScene;
-      return (this == scene);
-    }
-    
   });
 </script>
 </polymer-element>

@@ -45,21 +45,33 @@ Fired when the storybord's google map is ready to be rendered.
     }
 
     #sceneMedia {
-      position: relative;
-      z-index: 100000;
-      width: 200px;
+      display: inline-block;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      max-width: 300px;
       word-break: break-all; 
       word-wrap: break-word;
-      margin-left: auto;
-      margin-right: auto;
+      background-color: #ffffff;
+      border: 1px solid black;
     }
-    
+
+    #image {
+      display: inline-block;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+        
   </style>
 
   <google-maps-api apiKey="{{apiKey}}" version="3.exp" libraries="places,geometry" on-api-load="{{mapApiLoaded}}"></google-maps-api>
 
   <div id="map"></div>
-  <div id="sceneMedia"></div>
+  <div id="sceneMedia"></div>​
+  <div id="image"></div>
 
   <content id="scenes" select="google-map-scene"></content>
 </template>
@@ -137,13 +149,16 @@ Fired when the storybord's google map is ready to be rendered.
 
     updateContent: function() {
       var media = this.$.sceneMedia;
-      media.innerHTML = this.currentScene.innerHTML;
-      //this.onMutation(this, this.updateContent);
-      if (this.currentScene.isActive()) {
-        media.style.display = "block";
+      var image = this.$.image
+      if (this.currentScene.isImage === true) {
+        image.innerHTML = this.currentScene.innerHTML;
+        media.style.display = "none";
+        image.style.display = "block";
       }
       else {
-        media.style.display = "none";
+        media.innerHTML = this.currentScene.innerHTML;
+        image.style.display = "none";
+        media.style.display = "block";
       }
     },
 
