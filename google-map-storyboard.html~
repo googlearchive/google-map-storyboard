@@ -272,7 +272,6 @@ Fired when the storybord's google map is ready to be rendered.
       this.map.controls[controlPosition].insertAt(0, button);
     }
 
-
   });
 })();
 </script>
