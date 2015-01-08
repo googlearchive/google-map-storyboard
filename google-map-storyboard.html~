@@ -26,7 +26,7 @@ Fired when the storybord's google map is ready to be rendered.
 <link rel="import" href="bower_components/google-apis/google-apis.html">
 <link rel="import" href="google-map-scene.html">
 
-<polymer-element name="google-map-storyboard" attributes="apiKey">
+<polymer-element name="google-map-storyboard" attributes="apiKey current">
 <template>
   <style>
 
@@ -44,6 +44,7 @@ Fired when the storybord's google map is ready to be rendered.
       left: 0;
     }
 
+<<<<<<< HEAD
     #sceneMedia {
       display: inline-block;
       position: absolute;
@@ -65,6 +66,20 @@ Fired when the storybord's google map is ready to be rendered.
       transform: translate(-50%, -50%);
     }
         
+=======
+    button {
+      opacity: 0.5;
+      font-size: 1.5em;
+      outline: none;
+      border-radius: 50%;
+      background-color: #fff;
+    }
+
+    button:hover {
+      opacity: 1;
+    }
+    
+>>>>>>> 3c42e5830e01d69facb7e9814279a96de4f9787f
   </style>
 
   <google-maps-api apiKey="{{apiKey}}" version="3.exp" libraries="places,geometry" on-api-load="{{mapApiLoaded}}"></google-maps-api>
@@ -109,14 +124,25 @@ Fired when the storybord's google map is ready to be rendered.
      */
     apiKey: null,
 
+    publish: {
+      /**
+       * The id of the scene to be shown.
+       * 
+       * @attribute current
+       * @type String
+       * @default null
+       */
+      current: {value: null, reflect: true}
+    },
+
     /**
      * The index of the current scene.
      * 
-     * @property current
+     * @property index
      * @type Number
      * @default 0
      */
-    current: 0,
+    index: 0,
 
     /**
      * The current scene. Initialised to the first scene.
@@ -133,11 +159,18 @@ Fired when the storybord's google map is ready to be rendered.
 
     initialiseMap: function() {
       if (!this.map) {
+        this.indexChanged();
         var mapOptions = {
+          center: this.currentScene.location,
+          zoom: this.currentScene.zoom
         };
         this.map = new google.maps.Map(this.$.map, mapOptions);
+        this.makeButton("prev", "Previous", "<", 
+            google.maps.ControlPosition.LEFT_CENTER, this.getPrev);
+        this.makeButton("next", "Next", ">", 
+            google.maps.ControlPosition.RIGHT_CENTER, this.getNext);
+        this.updateControls();
         this.fire('google-map-storyboard-ready');
-        this.updateCurrentLoc();
       }
     },
 
@@ -171,25 +204,82 @@ Fired when the storybord's google map is ready to be rendered.
             if (status == google.maps.GeocoderStatus.OK) {
               var scene = this.scenes[index];
               scene.location = place[0].geometry.location;
-              if (index === this.current) {
+              if (scene === this.currentScene || this.index === index) {
+                this.index = index;
                 this.initialiseMap();
               }
-            } else if (index === this.current) {
-              this.current++;
             }
           }.bind(this));
         }.bind(this))(i);
       }
     },
 
+<<<<<<< HEAD
     updateCurrentLoc: function() {
       if (typeof this.current === "number") {
         var prev = this.currentScene;
         this.currentScene = this.scenes[this.current];
         this.updateContent();
+=======
+    currentChanged: function() {
+      var scene = document.getElementById(this.current);
+      if (!scene) {
+        return;
       }
-      this.map.panTo(this.currentScene.location);
-      this.map.setZoom(this.currentScene.zoom);
+      this.currentScene = scene;
+      this.index = (this.scenes && this.scenes.indexOf(scene)) || null;
+    },
+
+    indexChanged: function() {
+      this.currentScene = (this.scenes && this.scenes[this.index]) || 
+          this.currentScene;
+      this.current = this.currentScene.id;
+      if (this.map) {
+        this.map.panTo(this.currentScene.location || this.map.getCenter());
+        this.map.setZoom(this.currentScene.zoom);
+        this.updateControls();
+      }
+    },
+
+    getPrev: function() {
+      if (this.index > 0) {
+        this.index--;
+      }
+    },
+
+    getNext: function() {
+      if (this.index < this.scenes.length - 1) {
+        this.index++;
+>>>>>>> 3c42e5830e01d69facb7e9814279a96de4f9787f
+      }
+    },
+
+    updateControls: function() {
+      var control = this.map.controls[google.maps.ControlPosition.LEFT_CENTER];
+      if (this.index < 1) {
+        this.prevButton = this.prevButton || control.removeAt(0);
+      } else if (this.prevButton) {
+        control.insertAt(0, this.prevButton);
+        this.prevButton = null;
+      }
+
+      control = this.map.controls[google.maps.ControlPosition.RIGHT_CENTER];
+      if (this.index > this.scenes.length - 2) {
+        this.nextButton = this.nextButton || control.removeAt(0);
+      } else if (this.nextButton) {
+        control.insertAt(0, this.nextButton);
+        this.nextButton = null;
+      }
+    },
+
+    makeButton: function(id, title, text, controlPosition, onClick) {
+      var button = document.createElement('button');
+      button.id = id;
+      button.title = title;
+      var content = document.createTextNode(text);
+      button.appendChild(content);
+      google.maps.event.addDomListener(button, 'click', onClick.bind(this));
+      this.map.controls[controlPosition].insertAt(0, button);
     }
 
 
