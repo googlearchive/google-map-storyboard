@@ -44,6 +44,27 @@ Fired when the storybord's google map is ready to be rendered.
       left: 0;
     }
 
+    #sceneMedia {
+      display: inline-block;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      max-width: 300px;
+      word-break: break-all; 
+      word-wrap: break-word;
+      background-color: #ffffff;
+      border: 1px solid black;
+    }
+
+    #image {
+      display: inline-block;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+        
     button {
       opacity: 0.5;
       font-size: 1.5em;
@@ -61,6 +82,8 @@ Fired when the storybord's google map is ready to be rendered.
   <google-maps-api apiKey="{{apiKey}}" version="3.exp" libraries="places,geometry" on-api-load="{{mapApiLoaded}}"></google-maps-api>
 
   <div id="map"></div>
+  <div id="sceneMedia"></div>​
+  <div id="image"></div>
 
   <content id="scenes" select="google-map-scene"></content>
 </template>
@@ -154,6 +177,21 @@ Fired when the storybord's google map is ready to be rendered.
       this.updateLocations();
     },
 
+    updateContent: function() {
+      var media = this.$.sceneMedia;
+      var image = this.$.image
+      if (this.currentScene.isImage === true) {
+        image.innerHTML = this.currentScene.innerHTML;
+        media.style.display = "none";
+        image.style.display = "block";
+      }
+      else {
+        media.innerHTML = this.currentScene.innerHTML;
+        image.style.display = "none";
+        media.style.display = "block";
+      }
+    },
+
     updateLocations: function() {
       this.geocoder = this.geocoder || new google.maps.Geocoder();
       for (var i = 0; i < this.scenes.length; ++i) {
@@ -232,6 +270,7 @@ Fired when the storybord's google map is ready to be rendered.
       google.maps.event.addDomListener(button, 'click', onClick.bind(this));
       this.map.controls[controlPosition].insertAt(0, button);
     }
+
 
   });
 })();
