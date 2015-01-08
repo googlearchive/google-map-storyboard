@@ -127,7 +127,17 @@ Fired when the storybord's google map is ready to be rendered.
      */
     currentScene: null,
 
+    /**
+     * Array of the scene locations.
+     *
+     * @property totalPath
+     * @type Array.google.maps.LatLng
+     * @default null
+     */
+    totalPath: null,
+
     mapApiLoaded: function() {
+      this.totalPath = this.totalPath || [];
       this.updateScenes();
     },
 
@@ -144,6 +154,7 @@ Fired when the storybord's google map is ready to be rendered.
         this.makeButton("next", "Next", ">", 
             google.maps.ControlPosition.RIGHT_CENTER, this.getNext);
         this.updateControls();
+        this.totalPathChanged();
         this.fire('google-map-storyboard-ready');
       }
     },
@@ -163,6 +174,7 @@ Fired when the storybord's google map is ready to be rendered.
             if (status == google.maps.GeocoderStatus.OK) {
               var scene = this.scenes[index];
               scene.location = place[0].geometry.location;
+              this.totalPath[index] = scene.location;
               if (scene === this.currentScene || this.index === index) {
                 this.index = index;
                 this.initialiseMap();
@@ -190,6 +202,7 @@ Fired when the storybord's google map is ready to be rendered.
         this.map.panTo(this.currentScene.location || this.map.getCenter());
         this.map.setZoom(this.currentScene.zoom);
         this.updateControls();
+        this.totalPathChanged();
       }
     },
 
@@ -223,6 +236,20 @@ Fired when the storybord's google map is ready to be rendered.
       }
     },
 
+    totalPathChanged: function() {
+      if (this.map && this.index < this.totalPath.length) {
+        this.prevLine = this.prevLine || this.makePolyline(0.4);
+        this.nextLine = this.nextLine || this.makePolyline(0.2);
+
+        var prevPath = Array.prototype.slice.call(this.totalPath, 0,
+            this.index + 1);
+        this.prevLine.setPath(prevPath);
+        var nextPath = Array.prototype.slice.call(this.totalPath,
+            this.index).reverse();
+        this.nextLine.setPath(nextPath);
+      }
+    },
+
     makeButton: function(id, title, text, controlPosition, onClick) {
       var button = document.createElement('button');
       button.id = id;
@@ -231,6 +258,15 @@ Fired when the storybord's google map is ready to be rendered.
       button.appendChild(content);
       google.maps.event.addDomListener(button, 'click', onClick.bind(this));
       this.map.controls[controlPosition].insertAt(0, button);
+    },
+
+    makePolyline: function(opacity) {
+      var lineOptions = {
+        map: this.map,
+        geodesic: true,
+        strokeOpacity: opacity
+      };
+      return new google.maps.Polyline(lineOptions);
     }
 
   });
