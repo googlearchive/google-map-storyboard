@@ -44,6 +44,19 @@ Fired when the storybord's google map is ready to be rendered.
       left: 0;
     }
 
+    #sceneMedia {
+      display: inline-block;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      max-width: 300px;
+      word-break: break-all; 
+      word-wrap: break-word;
+      background-color: #ffffff;
+      border: 1px solid black;
+    }
+
     button {
       opacity: 0.5;
       font-size: 1.5em;
@@ -61,6 +74,7 @@ Fired when the storybord's google map is ready to be rendered.
   <google-maps-api apiKey="{{apiKey}}" version="3.exp" libraries="places,geometry" on-api-load="{{mapApiLoaded}}"></google-maps-api>
 
   <div id="map"></div>
+  <div id="sceneMedia"></div>
 
   <content id="scenes" select="google-map-scene"></content>
 </template>
@@ -165,6 +179,13 @@ Fired when the storybord's google map is ready to be rendered.
       this.updateLocations();
     },
 
+    updateContent: function() {
+      var media = this.$.sceneMedia;
+      window.console.log(media.innerHTML);
+      media.innerHTML = this.currentScene.innerHTML;
+      media.style.display = "block";
+    },
+
     updateLocations: function() {
       this.geocoder = this.geocoder || new google.maps.Geocoder();
       for (var i = 0; i < this.scenes.length; ++i) {
@@ -178,6 +199,7 @@ Fired when the storybord's google map is ready to be rendered.
               if (scene === this.currentScene || this.index === index) {
                 this.index = index;
                 this.initialiseMap();
+                this.updateContent();
               }
             }
           }.bind(this));
@@ -192,6 +214,7 @@ Fired when the storybord's google map is ready to be rendered.
       }
       this.currentScene = scene;
       this.index = (this.scenes && this.scenes.indexOf(scene)) || null;
+      this.updateContent();
     },
 
     indexChanged: function() {
