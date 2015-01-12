@@ -25,5 +25,5 @@ The 'google-map-scene' highlights a location and also shows pictures from that l
   *default: 10*
   
 **isImage**
-  Is the content an image.
+  The content is an image.
   *default: false*
