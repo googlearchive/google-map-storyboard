@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+  <script src="../bower_components/webcomponentsjs/webcomponents.js"></script>
+  <script src="../bower_components/web-component-tester/browser.js"></script>
+  <link rel="import" href="../google-map-storyboard.html">
+</head>
+<body>
+
+    <google-map-storyboard id="withIds" fit current="second">
+      <google-map-scene id="first" address="Mountain View" zoom="7">ABC</google-map-scene>
+      <google-map-scene id="second" address="Sydney, Australia" zoom="5">123</google-map-scene>
+      <google-map-scene id="third" address="Zurich, Switzerland">...</google-map-scene>
+    </google-map-storyboard>
+
+    <google-map-storyboard id="withoutIds" fit current="NonExistant">
+      <google-map-scene address="Mountain View" zoom="7">ABC</google-map-scene>
+      <google-map-scene address="Sydney, Australia" zoom="5"></google-map-scene>
+      <google-map-scene address="Zurich, Switzerland"></google-map-scene>
+    </google-map-storyboard>
+
+<script>
+
+suite('google-map-storyboard', function() {
+
+  test('alwaysPasses', function() {
+    assert.isTrue(true);
+  });
+
+  test('initialScene', function() {
+    flush(function() {
+      assert.equal(withoutIds.index, 0);
+      assert.isFalse(withoutIds.current);
+      assert.isTrue(withoutIds.currentScene);
+      assert.equal(withoutIds.currentScene.location, 
+          withoutIds.map.getCenter());
+
+      assert.equal(withIds.index, 1);
+      assert.equal(withIds.current, "second");
+      assert.equal(withIds.currentScene, second);
+      assert.equal(withIds.currentScene.location, 
+          withoutIds.map.getCenter());
+
+      done();
+    });
+  });
+
+  test('mapReadyEvent', function() {
+    withoutIds.addEventListener('google-map-storyboard-ready', function() {
+      assert.isTrue(withoutIds.map);
+      assert.equal(withoutIds.map.getZoom(), 7);
+      assert.equal(withoutIds.scenes[0].location, withoutIds.map.getCenter());
+      assert.isTrue(withoutIds.prevButton);
+      assert.isFalse(withoutIds.nextButton);
+      assert.isTrue(withoutIds.totalPath.length);
+      assert.equal(withoutIds.prevLine.getPath().length, 1);
+      assert.isTrue(withoutIds.nextLine.getPath().length);
+    });
+  });
+
+});
+
+suite('google-map-scene', function() {
+
+  test('sceneZoom', function() {
+    assert.equal(first.zoom, 7);
+    assert.equal(second.zoom, 5);
+    assert.equal(third.zoom, 10);
+  });
+
+  test('sceneLocations', function() {
+    flush(function() {
+      assert.isTrue(first.location);
+      assert.isTrue(first.location instanceof google.maps.LatLng);
+      assert.isTrue(second.location);
+      assert.isTrue(third.location);
+      done();
+    });
+  });
+
+});
+
+</script>
+</body>
+</html>
