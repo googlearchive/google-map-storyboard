@@ -23,3 +23,7 @@ The 'google-map-scene' highlights a location and also shows pictures from that l
 **zoom**
   The zoom at which to show this scene.
   *default: 10*
+  
+**isImage**
+  Is the content an image.
+  *default: false*
