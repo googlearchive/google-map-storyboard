@@ -57,7 +57,6 @@ Fired when the storybord's google map is ready to be rendered.
       border: 1px solid black;
     }
 
-<<<<<<< HEAD
     #image {
       display: inline-block;
       position: absolute;
@@ -66,8 +65,6 @@ Fired when the storybord's google map is ready to be rendered.
       transform: translate(-50%, -50%);
     }
         
-=======
->>>>>>> f361f85a830225e4c8d0fee96e598a79aaa31234
     button {
       opacity: 0.5;
       font-size: 1.5em;
@@ -182,7 +179,6 @@ Fired when the storybord's google map is ready to be rendered.
 
     updateContent: function() {
       var media = this.$.sceneMedia;
-<<<<<<< HEAD
       var image = this.$.image
       if (this.currentScene.isImage === true) {
         image.innerHTML = this.currentScene.innerHTML;
@@ -194,11 +190,6 @@ Fired when the storybord's google map is ready to be rendered.
         image.style.display = "none";
         media.style.display = "block";
       }
-=======
-      window.console.log(media.innerHTML);
-      media.innerHTML = this.currentScene.innerHTML;
-      media.style.display = "block";
->>>>>>> f361f85a830225e4c8d0fee96e598a79aaa31234
     },
 
     updateLocations: function() {
