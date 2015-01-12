@@ -46,7 +46,6 @@ Fired when the storybord's google map is ready to be rendered.
 
     #sceneMedia {
       position: relative;
-      z-index: 100000;
       width: 200px;
       word-break: break-all; 
       word-wrap: break-word;
@@ -179,13 +178,7 @@ Fired when the storybord's google map is ready to be rendered.
     updateContent: function() {
       var media = this.$.sceneMedia;
       media.innerHTML = this.currentScene.innerHTML;
-      //this.onMutation(this, this.updateContent);
-      if (this.currentScene.isActive()) {
-        media.style.display = "block";
-      }
-      else {
-        media.style.display = "none";
-      }
+      media.style.display = "block";
     },
 
     updateLocations: function() {
@@ -291,7 +284,6 @@ Fired when the storybord's google map is ready to be rendered.
       };
       return new google.maps.Polyline(lineOptions);
     }
-
 
   });
 })();

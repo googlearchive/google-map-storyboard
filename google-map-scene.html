@@ -19,9 +19,6 @@ The innerHTML of each scene is rendered at this location.
 <polymer-element name="google-map-scene" attributes="address zoom">
 <template>
   <style>
-
-
-
   </style>
 
 </template>
@@ -56,15 +53,6 @@ The innerHTML of each scene is rendered at this location.
       return storyboard;
     },
 
-    isActive: function() {
-      var story = this.getStoryboard();
-      if (story == null) {
-        return false;
-      }
-      var scene = story.currentScene;
-      return (this == scene);
-    }
-    
   });
 </script>
 </polymer-element>
