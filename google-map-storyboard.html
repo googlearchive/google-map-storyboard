@@ -45,12 +45,16 @@ Fired when the storybord's google map is ready to be rendered.
     }
 
     #sceneMedia {
-      position: relative;
-      width: 200px;
+      display: inline-block;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      max-width: 300px;
       word-break: break-all; 
       word-wrap: break-word;
-      margin-left: auto;
-      margin-right: auto;
+      background-color: #ffffff;
+      border: 1px solid black;
     }
 
     button {
@@ -177,6 +181,7 @@ Fired when the storybord's google map is ready to be rendered.
 
     updateContent: function() {
       var media = this.$.sceneMedia;
+      window.console.log(media.innerHTML);
       media.innerHTML = this.currentScene.innerHTML;
       media.style.display = "block";
     },
@@ -194,6 +199,7 @@ Fired when the storybord's google map is ready to be rendered.
               if (scene === this.currentScene || this.index === index) {
                 this.index = index;
                 this.initialiseMap();
+                this.updateContent();
               }
             }
           }.bind(this));
@@ -208,6 +214,7 @@ Fired when the storybord's google map is ready to be rendered.
       }
       this.currentScene = scene;
       this.index = (this.scenes && this.scenes.indexOf(scene)) || null;
+      this.updateContent();
     },
 
     indexChanged: function() {
