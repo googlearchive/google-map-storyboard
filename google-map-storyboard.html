@@ -233,12 +233,16 @@ Fired when the storybord's google map is ready to be rendered.
       if (this.currentScene.isImage === true) {
         image.innerHTML = this.currentScene.innerHTML;
         media.style.display = "none";
-        image.style.display = "block";
+        if (image.innerHTML) {
+          image.style.display = "block";
+        }
       }
       else {
         media.innerHTML = this.currentScene.innerHTML;
         image.style.display = "none";
-        media.style.display = "block";
+        if (media.innerHTML) {
+          media.style.display = "block";
+        }
       }
     },
 
