@@ -110,7 +110,7 @@ Fired when the storybord's google map is ready to be rendered.
     },
 
     /**
-     * The index of the current scene.
+     * The index of the upcoming scene.
      * 
      * @property index
      * @type Number
@@ -256,12 +256,31 @@ Fired when the storybord's google map is ready to be rendered.
       }
     },
 
-    addIdleListener: function(handler) {
+    /**
+     * The handler given will be executed when
+     * the next `idle` map event is fired.
+     *  - Only one handler is executed for each event.
+     *  - Each handler is only executed at most once.
+     *  - Overrides the previous handler.
+     *
+     * @method uponMapIdle
+     */
+    uponMapIdle: function(handler) {
       google.maps.event.removeListener(this.idleListener);
       this.idleListener = new google.maps.event.addListenerOnce(this.map,
           'idle', handler.bind(this));
     },
 
+    /**
+     * Fit the bounds of the map to the given scene locations.
+     * The first stage of a transition to a scene.
+     * The transition to a scene:
+     *   - `fitBounds -> panToScene -> activateScene`
+     *   - each change of state [`->`] occurs when the map is `idle`
+     *
+     * @method fitBounds
+     * @param Array.Number - indices of scenes (and their locations).
+     */
     fitBounds: function(indices) {
       if (this.map) {
         var bounds = new google.maps.LatLngBounds();
@@ -269,23 +288,34 @@ Fired when the storybord's google map is ready to be rendered.
           bounds.extend(this.totalPath[indices[i]]);
         }
         this.map.fitBounds(bounds);
-        this.addIdleListener(this.panToScene);
+        this.uponMapIdle(this.panToScene);
       }
     },
 
+    /**
+     * Pan to the upcoming scene (the scene that `index` points to).
+     *
+     * @method panToScene
+     */
     panToScene: function() {
       if (this.map) {
         this.totalPathChanged();
 
         if (!this.map.getCenter().equals(this.totalPath[this.index])) {
           this.map.panTo(this.totalPath[this.index]);
-          this.addIdleListener(this.activateScene);
+          this.uponMapIdle(this.activateScene);
         } else {
+          // if the map is already centered, activate the scene
           this.activateScene();
         }
       }
     },
 
+    /**
+     * Activate the upcoming scene.
+     *
+     * @method activateScene
+     */
     activateScene: function() {
       if (this.map) {
         var scene = this.scenes[this.index];
