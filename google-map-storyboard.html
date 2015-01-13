@@ -210,10 +210,12 @@ Fired when the storybord's google map is ready to be rendered.
       google.maps.event.addListener(this.map, 'dblclick', function() {
         media.style.display = "none";
         image.style.display = "none";
+        toggle.style.display = "inline-block";
       });
       google.maps.event.addListener(this.map, 'drag', function() {
         media.style.display = "none";
         image.style.display = "none";
+        toggle.style.display = "inline-block";
       });
     },
 
