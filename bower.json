@@ -1,7 +1,9 @@
 {
-  "name":"google-map-storyboard",   
-
+  "name":"google-map-storyboard",
   "dependencies":{
-    "google-map":"~0.4.0"
+    "google-apis": "GoogleWebComponents/google-apis#~0.4.2"
+  },
+  "devDependencies": {
+    "web-component-tester": "Polymer/web-component-tester#^1.1.2"
   }
 }
