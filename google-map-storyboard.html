@@ -1,8 +1,6 @@
 <!--
 The 'google-map-storyboard' renders a Google Map with 'google-map-scene' elements.
-
 <b>Example</b> - Add scenes to the map and traverse them linearly:
-
     <style>
       google-map-storyboard {
         height: 600px;
@@ -12,14 +10,11 @@ The 'google-map-storyboard' renders a Google Map with 'google-map-scene' element
       <google-map-scene address="Sydney, Australia" zoom="5">This is Sydney!</google-map-scene>
       <google-map-scene address="Zurich, Switzerland"></google-map-scene>
     </google-map-storyboard>
-
-
 @element google-map-storyboard
 @homepage https://github.com/googlemaps/google-map-storyboard
 -->
 <!--
 Fired when the storybord's google map is ready to be rendered.
-
 @event google-map-storyboard-ready
 -->
 <link rel="import" href="bower_components/polymer/polymer.html">
@@ -29,13 +24,11 @@ Fired when the storybord's google map is ready to be rendered.
 <polymer-element name="google-map-storyboard" attributes="apiKey current">
 <template>
   <style>
-
     :host {
       position: relative;
       display: block;
       height: 100%;
     }
-
     #map {
       position: absolute;
       top: 0;
@@ -43,7 +36,6 @@ Fired when the storybord's google map is ready to be rendered.
       bottom: 0;
       left: 0;
     }
-
     #sceneMedia {
       display: inline-block;
       position: absolute;
@@ -56,7 +48,6 @@ Fired when the storybord's google map is ready to be rendered.
       background-color: #ffffff;
       border: 1px solid black;
     }
-
     #image {
       display: inline-block;
       position: absolute;
@@ -64,7 +55,6 @@ Fired when the storybord's google map is ready to be rendered.
       left: 50%;
       transform: translate(-50%, -50%);
     }
-
     #toggle {
       display: none;
       position: absolute;
@@ -81,7 +71,6 @@ Fired when the storybord's google map is ready to be rendered.
       border-radius: 50%;
       background-color: #fff;
     }
-
     button:hover {
       opacity: 1;
     }
@@ -102,7 +91,6 @@ Fired when the storybord's google map is ready to be rendered.
 <script>
 (function() {
   Polymer({
-
     /**
      * Array of the google-map-scenes contained within the storyboard.
      * 
@@ -111,7 +99,6 @@ Fired when the storybord's google map is ready to be rendered.
      * @default null
      */
     scenes: null,
-
     /**
      * The google map used in the storyboard.
      * 
@@ -120,7 +107,6 @@ Fired when the storybord's google map is ready to be rendered.
      * @default null
      */
     map: null,
-
     /**
      * The Google Map API key. To obtain an API key, 
      * see developers.google.com/maps/documentation/javascript/tutorial#api_key.
@@ -130,7 +116,6 @@ Fired when the storybord's google map is ready to be rendered.
      * @default null
      */
     apiKey: null,
-
     publish: {
       /**
        * The id of the scene to be shown.
@@ -141,7 +126,6 @@ Fired when the storybord's google map is ready to be rendered.
        */
       current: {value: null, reflect: true}
     },
-
     /**
      * The index of the current scene.
      * 
@@ -150,7 +134,6 @@ Fired when the storybord's google map is ready to be rendered.
      * @default 0
      */
     index: 0,
-
     /**
      * The current scene. Initialised to the first scene.
      *
@@ -187,7 +170,6 @@ Fired when the storybord's google map is ready to be rendered.
         this.makeButton("next", "Next", ">", 
             google.maps.ControlPosition.RIGHT_CENTER, this.getNext);
         this.updateControls();
-        this.totalPathChanged();
         this.fire('google-map-storyboard-ready');
         this.contentInteractivity();
       }
@@ -320,7 +302,6 @@ Fired when the storybord's google map is ready to be rendered.
         control.insertAt(0, this.prevButton);
         this.prevButton = null;
       }
-
       control = this.map.controls[google.maps.ControlPosition.RIGHT_CENTER];
       if (this.index > this.scenes.length - 2) {
         this.nextButton = this.nextButton || control.removeAt(0);
@@ -329,7 +310,6 @@ Fired when the storybord's google map is ready to be rendered.
         this.nextButton = null;
       }
     },
-
 
     totalPathChanged: function() {
       if (this.map && this.index < this.totalPath.length) {
@@ -362,8 +342,6 @@ Fired when the storybord's google map is ready to be rendered.
       };
       return new google.maps.Polyline(lineOptions);
     }
-
-
   });
 })();
 </script>
