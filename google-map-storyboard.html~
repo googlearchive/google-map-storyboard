@@ -143,7 +143,7 @@ Fired when the storybord's google map is ready to be rendered.
     },
 
     /**
-     * The index of the upcoming scene.
+     * The index of the current scene.
      * 
      * @property index
      * @type Number
@@ -167,6 +167,7 @@ Fired when the storybord's google map is ready to be rendered.
 
     initialiseMap: function() {
       if (!this.map) {
+        this.indexChanged();
         var mapOptions = {
           center: this.currentScene.location,
           zoom: this.currentScene.zoom
@@ -209,12 +210,10 @@ Fired when the storybord's google map is ready to be rendered.
       google.maps.event.addListener(this.map, 'dblclick', function() {
         media.style.display = "none";
         image.style.display = "none";
-        toggle.style.display = "inline-block";
       });
       google.maps.event.addListener(this.map, 'drag', function() {
         media.style.display = "none";
         image.style.display = "none";
-        toggle.style.display = "inline-block";
       });
     },
 
@@ -244,7 +243,6 @@ Fired when the storybord's google map is ready to be rendered.
     },
 
     updateLocations: function() {
-      this.currentScene = this.currentScene || this.scenes[this.index];
       this.geocoder = this.geocoder || new google.maps.Geocoder();
       for (var i = 0; i < this.scenes.length; ++i) {
         var address = this.scenes[i].address;
@@ -254,9 +252,8 @@ Fired when the storybord's google map is ready to be rendered.
               var scene = this.scenes[index];
               scene.location = place[0].geometry.location;
               this.totalPath[index] = scene.location;
-              if (scene === this.currentScene) {
+              if (scene === this.currentScene || this.index === index) {
                 this.index = index;
-                this.current = scene.id;
                 this.initialiseMap();
                 this.updateContent();
               }
@@ -268,39 +265,35 @@ Fired when the storybord's google map is ready to be rendered.
 
     currentChanged: function() {
       var scene = document.getElementById(this.current);
-      if (!scene || scene.element.name != 'google-map-scene') {
+      if (!scene) {
         return;
       }
-      if (this.scenes) {
-        var sceneIndex = this.scenes.indexOf(scene);
-        if (sceneIndex != this.index) {
-          this.fitBounds([sceneIndex, this.index]);
-          this.index = sceneIndex;
-        }
-      } else {
-        this.currentScene = scene;
-      }
+      this.currentScene = scene;
+      this.index = (this.scenes && this.scenes.indexOf(scene)) || null;
+      this.updateContent();
     },
 
     indexChanged: function() {
+      this.currentScene = (this.scenes && this.scenes[this.index]) || 
+          this.currentScene;
+      this.current = this.currentScene.id;
       if (this.map) {
+        this.map.panTo(this.currentScene.location || this.map.getCenter());
+        this.map.setZoom(this.currentScene.zoom);
         this.updateControls();
+        this.totalPathChanged();
       }
     },
 
     getPrev: function() {
       if (this.index > 0) {
-        var from = this.index.valueOf();
         this.index--;
-        this.fitBounds([from, from - 1]);
       }
     },
 
     getNext: function() {
       if (this.index < this.scenes.length - 1) {
-        var from = this.index.valueOf();
         this.index++;
-        this.fitBounds([from, from + 1]);
       }
     },
 
@@ -333,77 +326,6 @@ Fired when the storybord's google map is ready to be rendered.
         var nextPath = Array.prototype.slice.call(this.totalPath,
             this.index).reverse();
         this.nextLine.setPath(nextPath);
-      }
-    },
-
-    /**
-     * The handler given will be executed when
-     * the next `idle` map event is fired.
-     *  - Only one handler is executed for each event.
-     *  - Each handler is only executed at most once.
-     *  - Overrides the previous handler.
-     *
-     * @method uponMapIdle
-     */
-    uponMapIdle: function(handler) {
-      google.maps.event.removeListener(this.idleListener);
-      this.idleListener = new google.maps.event.addListenerOnce(this.map,
-          'idle', handler.bind(this));
-    },
-
-    /**
-     * Fit the bounds of the map to the given scene locations.
-     * The first stage of a transition to a scene.
-     * The transition to a scene:
-     *   - `fitBounds -> panToScene -> activateScene`
-     *   - each change of state [`->`] occurs when the map is `idle`
-     *
-     * @method fitBounds
-     * @param Array.Number - indices of scenes (and their locations).
-     */
-    fitBounds: function(indices) {
-      if (this.map) {
-        var bounds = new google.maps.LatLngBounds();
-        for (var i in indices) {
-          bounds.extend(this.totalPath[indices[i]]);
-        }
-        this.map.fitBounds(bounds);
-        this.uponMapIdle(this.panToScene);
-      }
-    },
-
-    /**
-     * Pan to the upcoming scene (the scene that `index` points to).
-     *
-     * @method panToScene
-     */
-    panToScene: function() {
-      if (this.map) {
-        this.totalPathChanged();
-
-        if (!this.map.getCenter().equals(this.totalPath[this.index])) {
-          this.map.panTo(this.totalPath[this.index]);
-          this.uponMapIdle(this.activateScene);
-        } else {
-          // if the map is already centered, activate the scene
-          this.activateScene();
-        }
-      }
-    },
-
-    /**
-     * Activate the upcoming scene.
-     *
-     * @method activateScene
-     */
-    activateScene: function() {
-      if (this.map) {
-        var scene = this.scenes[this.index];
-        this.map.setZoom(scene.zoom);
-        this.map.setCenter(scene.location);
-        this.currentScene = scene;
-        this.current = scene.id;
-        this.updateContent();
       }
     },
 
