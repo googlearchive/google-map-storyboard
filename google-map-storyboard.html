@@ -196,16 +196,8 @@ Fired when the storybord's google map is ready to be rendered.
       var image = this.$.image;
       var toggle = this.$.toggle;
       var contentImage = false;
-      google.maps.event.addDomListener(media, 'click', function() {
-        media.style.display = 'none';
-        contentImage = false;
-        toggle.style.display = 'inline-block';
-      });
-      google.maps.event.addDomListener(image, 'click', function() {
-        image.style.display = 'none';
-        contentImage = true;
-        toggle.style.display = 'inline-block';
-      });
+      google.maps.event.addDomListener(media, 'click', turnOffContent);
+      google.maps.event.addDomListener(image, 'click', turnOffContent);
       google.maps.event.addDomListener(toggle,'click', function() {
         if (contentImage === true) {
           image.style.display = 'inline-block';
@@ -214,16 +206,13 @@ Fired when the storybord's google map is ready to be rendered.
         }
         toggle.style.display = 'none';
       });
-      google.maps.event.addListener(this.map, 'dblclick', function() {
+      google.maps.event.addListener(this.map, 'dblclick', turnOffContent);
+      google.maps.event.addListener(this.map, 'drag', turnOffContent);
+      function turnOffContent() {
         media.style.display = 'none';
         image.style.display = 'none';
         toggle.style.display = 'inline-block';
-      });
-      google.maps.event.addListener(this.map, 'drag', function() {
-        media.style.display = 'none';
-        image.style.display = 'none';
-        toggle.style.display = 'inline-block';
-      });
+      }
     },
 
     updateScenes: function() {
