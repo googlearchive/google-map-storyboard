@@ -150,6 +150,15 @@ Fired when the storybord's google map is ready to be rendered.
      */
     totalPath: null,
 
+    /**
+     * Duration of each line animation in milliseconds.
+     *
+     * @property ANIMATION_TIME_MS
+     * @type Number
+     * @default 5000
+     */
+    ANIMATION_TIME_MS: 5000,
+
     mapApiLoaded: function() {
       this.totalPath = this.totalPath || [];
       this.updateScenes();
@@ -167,7 +176,6 @@ Fired when the storybord's google map is ready to be rendered.
         this.makeButton("next", "Next", ">", 
             google.maps.ControlPosition.RIGHT_CENTER, this.getNext);
         this.updateControls();
-        this.totalPathChanged();
         this.fire('google-map-storyboard-ready');
       }
     },
@@ -216,8 +224,10 @@ Fired when the storybord's google map is ready to be rendered.
       if (this.scenes) {
         var sceneIndex = this.scenes.indexOf(scene);
         if (sceneIndex != this.index) {
-          this.fitBounds([sceneIndex, this.index]);
+          var oldIndex = this.index.valueOf();
           this.index = sceneIndex;
+          this.totalPathChanged();
+          this.fitBounds([oldIndex, this.index]);
         }
       } else {
         this.currentScene = scene;
@@ -234,7 +244,7 @@ Fired when the storybord's google map is ready to be rendered.
       if (this.index > 0) {
         var from = this.index.valueOf();
         this.index--;
-        this.fitBounds([from, from - 1]);
+        this.startAnimation(from, from - 1);
       }
     },
 
@@ -242,7 +252,7 @@ Fired when the storybord's google map is ready to be rendered.
       if (this.index < this.scenes.length - 1) {
         var from = this.index.valueOf();
         this.index++;
-        this.fitBounds([from, from + 1]);
+        this.startAnimation(from, from + 1);
       }
     },
 
@@ -266,6 +276,10 @@ Fired when the storybord's google map is ready to be rendered.
 
     totalPathChanged: function() {
       if (this.map && this.index < this.totalPath.length) {
+        if (this.animate) {
+          this.stopAnimation();
+          this.animate = false;
+        }
         this.prevLine = this.prevLine || this.makePolyline(0.4);
         this.nextLine = this.nextLine || this.makePolyline(0.2);
 
@@ -289,8 +303,10 @@ Fired when the storybord's google map is ready to be rendered.
      */
     uponMapIdle: function(handler) {
       google.maps.event.removeListener(this.idleListener);
-      this.idleListener = new google.maps.event.addListenerOnce(this.map,
-          'idle', handler.bind(this));
+      if (!this.animate) {
+        this.idleListener = new google.maps.event.addListenerOnce(this.map,
+            'idle', handler.bind(this));
+      }
     },
 
     /**
@@ -321,8 +337,6 @@ Fired when the storybord's google map is ready to be rendered.
      */
     panToScene: function() {
       if (this.map) {
-        this.totalPathChanged();
-
         if (!this.map.getCenter().equals(this.totalPath[this.index])) {
           this.map.panTo(this.totalPath[this.index]);
           this.uponMapIdle(this.activateScene);
@@ -366,9 +380,71 @@ Fired when the storybord's google map is ready to be rendered.
         strokeOpacity: opacity
       };
       return new google.maps.Polyline(lineOptions);
+    },
+
+    startAnimation: function(from, to) {
+      if (this.map) {
+        this.animate = true;
+        this.uponMapIdle();
+        this.stopAnimation();
+
+        this.async(function() {
+          if (this.animate) {
+            this.forward = (to > from);
+            var line = (!this.forward && this.nextLine) || this.prevLine;
+            line.getPath().push(getLast(line));
+
+            this.fitBounds([from, to]);
+            this.startTime = window['mozAnimationStartTime'] || Date.now();
+            this.intervalId = window.requestAnimationFrame(step.bind(this, from, to));
+          }
+        });
+      }
+    },
+
+    stopAnimation: function() {
+      if (this.intervalId) {
+        window.cancelAnimationFrame(this.intervalId);
+        this.intervalId = null;
+        var shortenLine = (this.forward && this.nextLine) || this.prevLine;
+        shortenLine.getPath().pop();
+        var line = (!this.forward && this.nextLine) || this.prevLine;
+        setLast(line, getLast(shortenLine));
+        if (!this.animate) {
+          this.panToScene();
+        }
+      }
     }
 
   });
+
+  function step(from, to) {
+    var diffTime = Date.now() - this.startTime;
+    var offset = (diffTime/this.ANIMATION_TIME_MS);
+    if (offset >= 1) {
+      this.animate = false;
+      this.stopAnimation();
+      return;
+    }
+
+    var wayPoint = new google.maps.geometry.spherical.interpolate(
+        this.totalPath[from], this.totalPath[to], offset);
+    setLast(this.nextLine, wayPoint);
+    setLast(this.prevLine, wayPoint);
+
+    this.intervalId = window.requestAnimationFrame(step.bind(this, from, to));
+  }
+
+  function setLast(line, point) {
+    var path = line.getPath();
+    path.setAt(path.length -1, point);
+  }
+
+  function getLast(line) {
+    var path = line.getPath();
+    return path.getAt(path.length -1);
+  }
+
 })();
 </script>
 </polymer-element>
