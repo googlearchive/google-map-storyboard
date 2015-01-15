@@ -224,11 +224,11 @@ Fired when the storybord's google map is ready to be rendered.
       google.maps.event.addListener(this.map, 'dblclick', turnOffContent);
       google.maps.event.addListener(this.map, 'drag', turnOffContent);
       function turnOffContent() {
-        if (image.style.display = 'inline-block') {
+        if (image.style.display != 'none') {
           image.style.display = 'none';
           contentImage = true;
         } else {
-          media.style.display = 'inline-block';
+          media.style.display = 'none';
           contentImage = false;
         }
         toggle.style.display = 'inline-block';
@@ -246,19 +246,18 @@ Fired when the storybord's google map is ready to be rendered.
       var image = this.$.image
       var toggle = this.$.toggle;
       toggle.style.display = 'none';
-      window.console.log(this.currentScene.getElementsByTagName('img'));
       if (this.currentScene.isImage === true) {
         image.innerHTML = this.currentScene.innerHTML;
         media.style.display = 'none';
         if (image.innerHTML) {
-          image.style.display = 'block';
+          image.style.display = 'inline-block';
         }
       }
       else {
         media.innerHTML = this.currentScene.innerHTML;
         image.style.display = 'none';
         if (media.innerHTML) {
-          media.style.display = 'block';
+          media.style.display = 'inline-block';
         }
       }
     },
