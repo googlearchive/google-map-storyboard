@@ -56,6 +56,14 @@ Fired when the storybord's google map is ready to be rendered.
       background-color: #ffffff;
       border: 1px solid black;
     }
+    
+    #image {
+      display: inline-block;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
 
     button {
       opacity: 0.5;
@@ -75,6 +83,7 @@ Fired when the storybord's google map is ready to be rendered.
 
   <div id="map"></div>
   <div id="sceneMedia"></div>
+  <div id="image"></div>
 
   <content id="scenes" select="google-map-scene"></content>
 </template>
@@ -167,7 +176,6 @@ Fired when the storybord's google map is ready to be rendered.
         this.makeButton("next", "Next", ">", 
             google.maps.ControlPosition.RIGHT_CENTER, this.getNext);
         this.updateControls();
-        this.totalPathChanged();
         this.fire('google-map-storyboard-ready');
       }
     },
@@ -180,9 +188,22 @@ Fired when the storybord's google map is ready to be rendered.
 
     updateContent: function() {
       var media = this.$.sceneMedia;
-      window.console.log(media.innerHTML);
-      media.innerHTML = this.currentScene.innerHTML;
-      media.style.display = "block";
+      var image = this.$.image
+      var currentNode = this.currentScene.firstChild;
+      if (currentNode.cloneNode() instanceof HTMLImageElement) {
+        image.innerHTML = currentNode.outerHTML;
+        media.style.display = 'none';
+        if (image.innerHTML) {
+          image.style.display = 'inline-block';
+        }
+      }
+      else {
+        media.innerHTML = currentNode.textContent;
+        image.style.display = 'none';
+        if (media.innerHTML) {
+          media.style.display = 'inline-block';
+        }
+      }
     },
 
     updateLocations: function() {
@@ -305,6 +326,10 @@ Fired when the storybord's google map is ready to be rendered.
      */
     fitBounds: function(indices) {
       if (this.map) {
+        var media = this.$.sceneMedia;
+        var image = this.$.image
+        media.style.display = 'none';
+        image.style.display = 'none';
         var bounds = new google.maps.LatLngBounds();
         for (var i in indices) {
           bounds.extend(this.totalPath[indices[i]]);
@@ -322,7 +347,6 @@ Fired when the storybord's google map is ready to be rendered.
     panToScene: function() {
       if (this.map) {
         this.totalPathChanged();
-
         if (!this.map.getCenter().equals(this.totalPath[this.index])) {
           this.map.panTo(this.totalPath[this.index]);
           this.uponMapIdle(this.activateScene);
