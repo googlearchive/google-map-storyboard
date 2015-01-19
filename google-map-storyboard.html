@@ -57,6 +57,14 @@ Fired when the storybord's google map is ready to be rendered.
       border: 1px solid black;
     }
 
+    #image {
+      display: inline-block;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+        
     button {
       opacity: 0.5;
       font-size: 1.5em;
@@ -74,7 +82,8 @@ Fired when the storybord's google map is ready to be rendered.
   <google-maps-api apiKey="{{apiKey}}" version="3.exp" libraries="places,geometry" on-api-load="{{mapApiLoaded}}"></google-maps-api>
 
   <div id="map"></div>
-  <div id="sceneMedia"></div>
+  <div id="sceneMedia"></div>​
+  <div id="image"></div>
 
   <content id="scenes" select="google-map-scene"></content>
 </template>
@@ -147,8 +156,8 @@ Fired when the storybord's google map is ready to be rendered.
      * @property totalPath
      * @type Array.google.maps.LatLng
      * @default null
-     */
-    totalPath: null,
+   */
+   totalPath: null,
 
     mapApiLoaded: function() {
       this.totalPath = this.totalPath || [];
@@ -167,7 +176,6 @@ Fired when the storybord's google map is ready to be rendered.
         this.makeButton("next", "Next", ">", 
             google.maps.ControlPosition.RIGHT_CENTER, this.getNext);
         this.updateControls();
-        this.totalPathChanged();
         this.fire('google-map-storyboard-ready');
       }
     },
@@ -180,9 +188,17 @@ Fired when the storybord's google map is ready to be rendered.
 
     updateContent: function() {
       var media = this.$.sceneMedia;
-      window.console.log(media.innerHTML);
-      media.innerHTML = this.currentScene.innerHTML;
-      media.style.display = "block";
+      var image = this.$.image
+      if (this.currentScene.isImage === true) {
+        image.innerHTML = this.currentScene.innerHTML;
+        media.style.display = "none";
+        image.style.display = "block";
+      }
+      else {
+        media.innerHTML = this.currentScene.innerHTML;
+        image.style.display = "none";
+        media.style.display = "block";
+      }
     },
 
     updateLocations: function() {

@@ -15,7 +15,7 @@ The innerHTML of each scene is rendered at this location.
 <link rel="import" href="bower_components/polymer/polymer.html">
 <link rel="import" href="bower_components/google-apis/google-apis.html">
 
-<polymer-element name="google-map-scene" attributes="address zoom">
+<polymer-element name="google-map-scene" attributes="address zoom isImage">
 <template>
   <style>
   </style>
@@ -42,6 +42,15 @@ The innerHTML of each scene is rendered at this location.
      * @default null
      */
     zoom: 10,
+
+    /**
+     * Is the content an image
+     *
+     * @attribute isImage
+     * @type boolean
+     * @default false
+     */
+    isImage: false,
 
     getStoryboard: function() {
       var storyboard = this.parentNode;
