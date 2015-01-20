@@ -12,6 +12,11 @@ The innerHTML of each scene is rendered at this location.
 @element google-map-scene
 @homepage https://github.com/googlemaps/google-map-storyboard
 -->
+<!--
+Fired when the scene's location has been changed.
+
+@event scene-location-changed
+-->
 <link rel="import" href="bower_components/polymer/polymer.html">
 <link rel="import" href="bower_components/google-apis/google-apis.html">
 
@@ -43,10 +48,43 @@ The innerHTML of each scene is rendered at this location.
      */
     zoom: 10,
 
+    /**
+     * The location of the scene.
+     *
+     * @property location
+     * @type google.maps.LatLng
+     * @default null
+     */
+    location: null,
+
+    /**
+     * The marker for that scene.
+     *
+     * @property marker
+     * @type google.maps.Marker
+     * @default null
+     */
+    marker: null,
+
     getStoryboard: function() {
       var storyboard = this.parentNode;
       return storyboard;
     },
+
+    locationChanged: function() {
+      if (this.location instanceof google.maps.LatLng){
+        if (!this.marker) this.makeMarker();
+        this.marker.setPosition(this.location);
+      }
+      this.fire('scene-location-changed');
+    },
+
+    makeMarker: function() {
+      this.marker = new google.maps.Marker({
+        map: null,
+        location: this.location
+      });
+    }
 
   });
 </script>
