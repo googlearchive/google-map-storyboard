@@ -419,22 +419,21 @@ Fired when the storybord's google map is ready to be rendered.
      * @param {Number} to The index of the scene it is animating to.
      */
     startAnimation: function(from, to) {
-      if (this.map) {
-        this.uponMapIdle(null);
-        this.stopAnimation(false);
+      if (!this.map) return;
+      this.uponMapIdle(null);
+      this.stopAnimation(false);
 
-        this.async(function() {
-          this.forward = (to > from);
-          var line = (!this.forward && this.nextLine) || this.prevLine;
-          line.getPath().push(getLast(line));
-          this.fitBounds([from, to], false);
-          /* NOTE: requestAnimationFrame gives the DOMHighResTimeStamp as the
-           * last parameter in the callback. (The 3rd parameter in this case.)
-           */
-          this.intervalId = window.requestAnimationFrame(
-              step.bind(this, from, to));
-        });
-      }
+      this.async(function() {
+        this.forward = (to > from);
+        var line = (!this.forward && this.nextLine) || this.prevLine;
+        line.getPath().push(getLast(line));
+        this.fitBounds([from, to], false);
+        /* NOTE: requestAnimationFrame gives the DOMHighResTimeStamp as the
+         * last parameter in the callback. (The 3rd parameter in this case.)
+         */
+        this.intervalId = window.requestAnimationFrame(
+            step.bind(this, from, to));
+      });
     },
 
     /**
@@ -444,27 +443,27 @@ Fired when the storybord's google map is ready to be rendered.
      * @param {Boolean} finishTransition If true, finishes default transition.
      */
     stopAnimation: function(finishTransition) {
-      if (typeof this.intervalId === 'number') {
-        window.cancelAnimationFrame(this.intervalId);
-        this.intervalId = null;
-        var shortenLine = (this.forward && this.nextLine) || this.prevLine;
-        shortenLine.getPath().pop();
-        var line = (!this.forward && this.nextLine) || this.prevLine;
-        setLast(line, getLast(shortenLine));
-        if (finishTransition) this.panToScene();
-      }
+      if (typeof this.intervalId != 'number') return;
+      window.cancelAnimationFrame(this.intervalId);
+      this.intervalId = null;
+      var shortenLine = (this.forward && this.nextLine) || this.prevLine;
+      shortenLine.getPath().pop();
+      var line = (!this.forward && this.nextLine) || this.prevLine;
+      setLast(line, getLast(shortenLine));
+      if (finishTransition) this.panToScene();
     }
 
   });
 
   /**
    * A step/frame of the line animation.
+   * Note: Expects `this` to be the storyboard.
    *
    * @method step
    * @param {Number} from The index of the scene it is animating from.
    * @param {Number} to The index of the scene it is animating to.
-   * @param {Number} startTime The animation start time.
-   * @param {Number} currentTime Optional, defaults to startTime.
+   * @param {DOMHighResTimeStamp} startTime The animation start time.
+   * @param {DOMHighResTimeStamp} currentTime Optional, defaults to startTime.
    */
   function step(from, to, startTime, currentTime) {
     if (!currentTime) currentTime = startTime;
@@ -486,12 +485,12 @@ Fired when the storybord's google map is ready to be rendered.
 
   function setLast(line, point) {
     var path = line.getPath();
-    path.setAt(path.length -1, point);
+    path.setAt(path.length - 1, point);
   }
 
   function getLast(line) {
     var path = line.getPath();
-    return path.getAt(path.length -1);
+    return path.getAt(path.length - 1);
   }
 
 })();
