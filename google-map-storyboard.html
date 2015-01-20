@@ -190,7 +190,7 @@ Fired when the storybord's google map is ready to be rendered.
       var media = this.$.sceneMedia;
       var image = this.$.image
       var currentNode = this.currentScene.firstChild;
-      if (currentNode.cloneNode() instanceof HTMLImageElement) {
+      if (currentNode instanceof HTMLImageElement) {
         image.innerHTML = currentNode.outerHTML;
         media.style.display = 'none';
         if (image.innerHTML) {
