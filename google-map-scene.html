@@ -58,13 +58,17 @@ Fired when the scene's location has been changed.
     location: null,
 
     /**
-     * The marker for that scene.
+     * The marker for this scene.
      *
      * @property marker
      * @type google.maps.Marker
      * @default null
      */
     marker: null,
+
+    detached: function() {
+      if (this.marker) this.marker.setMap(null);
+    },
 
     getStoryboard: function() {
       var storyboard = this.parentNode;

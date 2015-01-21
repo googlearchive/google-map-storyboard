@@ -76,7 +76,7 @@ Fired when the storybord's google map is ready to be rendered.
   <div id="map"></div>
   <div id="sceneMedia"></div>
 
-  <content id="scenes" select="google-map-scene" on-scene-location-changed="{{updateSceneLocation}}"></content>
+  <content id="scenes" select="google-map-scene" on-scene-location-changed="{{updateScenes}}"></content>
 </template>
 
 
@@ -151,10 +151,10 @@ Fired when the storybord's google map is ready to be rendered.
     currentScene: null,
 
     mapApiLoaded: function() {
-      this.updateScenes();
+      this.initializeScenes();
     },
 
-    initialiseMap: function() {
+    initializeMap: function() {
       if (!this.map) {
         var mapOptions = {
           center: this.currentScene.location,
@@ -166,12 +166,12 @@ Fired when the storybord's google map is ready to be rendered.
         this.makeButton("next", "Next", ">", 
             google.maps.ControlPosition.RIGHT_CENTER, this.getNext);
         this.updateControls();
-        this.updateSceneLocation();
+        this.updateScenes();
         this.fire('google-map-storyboard-ready');
       }
     },
 
-    updateScenes: function() {
+    initializeScenes: function() {
       this.scenes = Array.prototype.slice.call(
           this.$.scenes.getDistributedNodes());
       this.updateLocations();
@@ -199,7 +199,7 @@ Fired when the storybord's google map is ready to be rendered.
               if (scene === this.currentScene) {
                 this.index = index;
                 this.current = scene.id;
-                this.initialiseMap();
+                this.initializeMap();
                 this.updateContent();
               }
             }
@@ -208,9 +208,9 @@ Fired when the storybord's google map is ready to be rendered.
       }
     },
 
-    updateSceneLocation: function() {
+    updateScenes: function() {
       this.updateTotalPath();
-      this.showMarkersChanged();
+      if (this.showMarkers) this.showMarkersChanged();
     },
 
     showMarkersChanged: function() {
