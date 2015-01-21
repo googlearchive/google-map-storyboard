@@ -26,7 +26,7 @@ Fired when the storybord's google map is ready to be rendered.
 <link rel="import" href="bower_components/google-apis/google-apis.html">
 <link rel="import" href="google-map-scene.html">
 
-<polymer-element name="google-map-storyboard" attributes="apiKey current showMarkers">
+<polymer-element name="google-map-storyboard" attributes="apiKey current showMarkers disableDefaultUI">
 <template>
   <style>
 
@@ -146,6 +146,15 @@ Fired when the storybord's google map is ready to be rendered.
     showMarkers: true,
 
     /**
+     * If true, removes the map's default UI controls.
+     *
+     * @attribute disableDefaultUI
+     * @type Boolean
+     * @default true
+     */
+    disableDefaultUI: true,
+
+    /**
      * The index of the upcoming scene.
      * 
      * @property index
@@ -171,7 +180,8 @@ Fired when the storybord's google map is ready to be rendered.
       if (!this.map) {
         var mapOptions = {
           center: this.currentScene.location,
-          zoom: this.currentScene.zoom
+          zoom: this.currentScene.zoom,
+          disableDefaultUI: this.disableDefaultUI
         };
         this.map = new google.maps.Map(this.$.map, mapOptions);
         this.makeButton("prev", "Previous", "<", 
@@ -246,6 +256,13 @@ Fired when the storybord's google map is ready to be rendered.
         var marker = this.scenes[i].marker;
         if (marker) marker.setMap(map);
       }
+    },
+
+    disableDefaultUIChanged: function() {
+      if (!this.map) return;
+      this.map.setOptions({
+        disableDefaultUI: this.disableDefaultUI
+      });
     },
 
     currentChanged: function() {
