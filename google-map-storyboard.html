@@ -26,7 +26,7 @@ Fired when the storybord's google map is ready to be rendered.
 <link rel="import" href="bower_components/google-apis/google-apis.html">
 <link rel="import" href="google-map-scene.html">
 
-<polymer-element name="google-map-storyboard" attributes="apiKey current">
+<polymer-element name="google-map-storyboard" attributes="apiKey current showMarkers">
 <template>
   <style>
 
@@ -89,7 +89,7 @@ Fired when the storybord's google map is ready to be rendered.
   <div id="sceneMedia"></div>
   <div id="image"></div>
 
-  <content id="scenes" select="google-map-scene"></content>
+  <content id="scenes" select="google-map-scene" on-scene-location-changed="{{updateScenes}}"></content>
 </template>
 
 
@@ -137,6 +137,15 @@ Fired when the storybord's google map is ready to be rendered.
     },
 
     /**
+     * If true, there is a marker shown at each scene.
+     *
+     * @attribute showMarkers
+     * @type Boolean
+     * @default true
+     */
+    showMarkers: true,
+
+    /**
      * The index of the upcoming scene.
      * 
      * @property index
@@ -155,10 +164,10 @@ Fired when the storybord's google map is ready to be rendered.
     currentScene: null,
 
     mapApiLoaded: function() {
-      this.updateScenes();
+      this.initializeScenes();
     },
 
-    initialiseMap: function() {
+    initializeMap: function() {
       if (!this.map) {
         var mapOptions = {
           center: this.currentScene.location,
@@ -170,12 +179,12 @@ Fired when the storybord's google map is ready to be rendered.
         this.makeButton("next", "Next", ">", 
             google.maps.ControlPosition.RIGHT_CENTER, this.getNext);
         this.updateControls();
-        this.updateTotalPath();
+        this.updateScenes();
         this.fire('google-map-storyboard-ready');
       }
     },
 
-    updateScenes: function() {
+    initializeScenes: function() {
       this.scenes = Array.prototype.slice.call(
           this.$.scenes.getDistributedNodes());
       this.updateLocations();
@@ -213,16 +222,29 @@ Fired when the storybord's google map is ready to be rendered.
             if (status == google.maps.GeocoderStatus.OK) {
               var scene = this.scenes[index];
               scene.location = place[0].geometry.location;
-              this.updateTotalPath();
               if (scene === this.currentScene) {
                 this.index = index;
                 this.current = scene.id;
-                this.initialiseMap();
+                this.initializeMap();
                 this.updateContent();
               }
             }
           }.bind(this));
         }.bind(this))(i);
+      }
+    },
+
+    updateScenes: function() {
+      this.updateTotalPath();
+      if (this.showMarkers) this.showMarkersChanged();
+    },
+
+    showMarkersChanged: function() {
+      if (!this.map) return;
+      var map = (this.showMarkers && this.map) || null;
+      for (var i in this.scenes) {
+        var marker = this.scenes[i].marker;
+        if (marker) marker.setMap(map);
       }
     },
 
