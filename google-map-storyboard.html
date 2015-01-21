@@ -44,6 +44,11 @@ Fired when the storybord's google map is ready to be rendered.
       left: 0;
     }
 
+    #sceneMedia * {
+      max-width: 100%;
+      max-height: 100%;
+    }
+
     #sceneMedia {
       display: inline-block;
       position: absolute;
@@ -51,7 +56,6 @@ Fired when the storybord's google map is ready to be rendered.
       left: 50%;
       transform: translate(-50%, -50%);
       max-width: 300px;
-      word-break: break-all; 
       word-wrap: break-word;
       background-color: #ffffff;
       border: 1px solid black;
@@ -150,17 +154,7 @@ Fired when the storybord's google map is ready to be rendered.
      */
     currentScene: null,
 
-    /**
-     * Array of the scene locations.
-     *
-     * @property totalPath
-     * @type Array.google.maps.LatLng
-     * @default null
-     */
-    totalPath: null,
-
     mapApiLoaded: function() {
-      this.totalPath = this.totalPath || [];
       this.updateScenes();
     },
 
@@ -176,6 +170,7 @@ Fired when the storybord's google map is ready to be rendered.
         this.makeButton("next", "Next", ">", 
             google.maps.ControlPosition.RIGHT_CENTER, this.getNext);
         this.updateControls();
+        this.updateTotalPath();
         this.fire('google-map-storyboard-ready');
       }
     },
@@ -210,13 +205,15 @@ Fired when the storybord's google map is ready to be rendered.
       this.currentScene = this.currentScene || this.scenes[this.index];
       this.geocoder = this.geocoder || new google.maps.Geocoder();
       for (var i = 0; i < this.scenes.length; ++i) {
-        var address = this.scenes[i].address;
+        var scene = this.scenes[i];
+        if (scene.location instanceof google.maps.LatLng) continue;
         (function(index) {
-          this.geocoder.geocode( {address: address}, function(place, status) {
+          this.geocoder.geocode({address: scene.address}, 
+              function(place, status) {
             if (status == google.maps.GeocoderStatus.OK) {
               var scene = this.scenes[index];
               scene.location = place[0].geometry.location;
-              this.totalPath[index] = scene.location;
+              this.updateTotalPath();
               if (scene === this.currentScene) {
                 this.index = index;
                 this.current = scene.id;
@@ -285,17 +282,26 @@ Fired when the storybord's google map is ready to be rendered.
       }
     },
 
-    totalPathChanged: function() {
-      if (this.map && this.index < this.totalPath.length) {
+    // TODO: Decide on behaviour at invalid locations and implement.
+    updateTotalPath: function() {
+      if (this.map) {
         this.prevLine = this.prevLine || this.makePolyline(0.4);
         this.nextLine = this.nextLine || this.makePolyline(0.2);
-
-        var prevPath = Array.prototype.slice.call(this.totalPath, 0,
-            this.index + 1);
-        this.prevLine.setPath(prevPath);
-        var nextPath = Array.prototype.slice.call(this.totalPath,
-            this.index).reverse();
-        this.nextLine.setPath(nextPath);
+        var prevPath = this.prevLine.getPath().getArray();
+        var nextPath = this.nextLine.getPath().getArray();
+        var totalPath = prevPath.concat(nextPath.slice(0,-1).reverse());
+        // If the totalPath is incomplete, add points to the path until it is
+        // complete, or until it reaches a scene without a location.
+        // The totalPath and polyline is not constructed passed
+        // an invalid location.
+        for (var i = totalPath.length, scene; scene = this.scenes[i]; ++i) {
+          if (!scene.location) break;
+          totalPath.push(scene.location);
+        }
+        // Previous line path contains the points up to and including index
+        this.prevLine.setPath(totalPath.slice(0, this.index + 1));
+        // Next line path contains the points from the end to index (inclusive)
+        this.nextLine.setPath(totalPath.slice(this.index).reverse());
       }
     },
 
@@ -332,7 +338,7 @@ Fired when the storybord's google map is ready to be rendered.
         image.style.display = 'none';
         var bounds = new google.maps.LatLngBounds();
         for (var i in indices) {
-          bounds.extend(this.totalPath[indices[i]]);
+          bounds.extend(this.scenes[indices[i]].location);
         }
         this.map.fitBounds(bounds);
         this.uponMapIdle(this.panToScene);
@@ -346,9 +352,9 @@ Fired when the storybord's google map is ready to be rendered.
      */
     panToScene: function() {
       if (this.map) {
-        this.totalPathChanged();
-        if (!this.map.getCenter().equals(this.totalPath[this.index])) {
-          this.map.panTo(this.totalPath[this.index]);
+        this.updateTotalPath();
+        if (!this.map.getCenter().equals(this.scenes[this.index].location)) {
+          this.map.panTo(this.scenes[this.index].location);
           this.uponMapIdle(this.activateScene);
         } else {
           // if the map is already centered, activate the scene
