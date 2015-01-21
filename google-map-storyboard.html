@@ -372,12 +372,12 @@ Fired when the storybord's google map is ready to be rendered.
         this.nextLine = this.nextLine || this.makePolyline(0.2);
         var prevPath = this.prevLine.getPath().getArray();
         var nextPath = this.nextLine.getPath().getArray();
-        var totalPath = prevPath.concat(nextPath.slice(0,-1).reverse());
+        var totalPath = [];
         // If the totalPath is incomplete, add points to the path until it is
         // complete, or until it reaches a scene without a location.
         // The totalPath and polyline is not constructed passed
         // an invalid location.
-        for (var i = totalPath.length, scene; scene = this.scenes[i]; ++i) {
+        for (var i = 0, scene; scene = this.scenes[i]; ++i) {
           if (!scene.location) break;
           totalPath.push(scene.location);
         }
