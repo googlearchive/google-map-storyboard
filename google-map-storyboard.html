@@ -26,7 +26,7 @@ Fired when the storybord's google map is ready to be rendered.
 <link rel="import" href="bower_components/google-apis/google-apis.html">
 <link rel="import" href="google-map-scene.html">
 
-<polymer-element name="google-map-storyboard" attributes="apiKey current">
+<polymer-element name="google-map-storyboard" attributes="apiKey current showMarkers disableDefaultUI">
 <template>
   <style>
 
@@ -44,6 +44,11 @@ Fired when the storybord's google map is ready to be rendered.
       left: 0;
     }
 
+    #sceneMedia * {
+      max-width: 100%;
+      max-height: 100%;
+    }
+
     #sceneMedia {
       display: inline-block;
       position: absolute;
@@ -51,10 +56,17 @@ Fired when the storybord's google map is ready to be rendered.
       left: 50%;
       transform: translate(-50%, -50%);
       max-width: 300px;
-      word-break: break-all; 
       word-wrap: break-word;
       background-color: #ffffff;
       border: 1px solid black;
+    }
+    
+    #image {
+      display: inline-block;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
     }
 
     button {
@@ -75,8 +87,9 @@ Fired when the storybord's google map is ready to be rendered.
 
   <div id="map"></div>
   <div id="sceneMedia"></div>
+  <div id="image"></div>
 
-  <content id="scenes" select="google-map-scene"></content>
+  <content id="scenes" select="google-map-scene" on-scene-location-changed="{{updateScenes}}"></content>
 </template>
 
 
@@ -124,6 +137,24 @@ Fired when the storybord's google map is ready to be rendered.
     },
 
     /**
+     * If true, there is a marker shown at each scene.
+     *
+     * @attribute showMarkers
+     * @type Boolean
+     * @default true
+     */
+    showMarkers: true,
+
+    /**
+     * If true, removes the map's default UI controls.
+     *
+     * @attribute disableDefaultUI
+     * @type Boolean
+     * @default true
+     */
+    disableDefaultUI: true,
+
+    /**
      * The index of the upcoming scene.
      * 
      * @property index
@@ -140,15 +171,6 @@ Fired when the storybord's google map is ready to be rendered.
      * @default null
      */
     currentScene: null,
-
-    /**
-     * Array of the scene locations.
-     *
-     * @property totalPath
-     * @type Array.google.maps.LatLng
-     * @default null
-     */
-    totalPath: null,
 
     /**
      * The intervalId of the current line animation frame.
@@ -170,15 +192,15 @@ Fired when the storybord's google map is ready to be rendered.
     ANIMATION_TIME_MS: 5000,
 
     mapApiLoaded: function() {
-      this.totalPath = this.totalPath || [];
-      this.updateScenes();
+      this.initializeScenes();
     },
 
-    initialiseMap: function() {
+    initializeMap: function() {
       if (!this.map) {
         var mapOptions = {
           center: this.currentScene.location,
-          zoom: this.currentScene.zoom
+          zoom: this.currentScene.zoom,
+          disableDefaultUI: this.disableDefaultUI
         };
         this.map = new google.maps.Map(this.$.map, mapOptions);
         this.makeButton("prev", "Previous", "<", 
@@ -186,11 +208,12 @@ Fired when the storybord's google map is ready to be rendered.
         this.makeButton("next", "Next", ">", 
             google.maps.ControlPosition.RIGHT_CENTER, this.getNext);
         this.updateControls();
+        this.updateScenes();
         this.fire('google-map-storyboard-ready');
       }
     },
 
-    updateScenes: function() {
+    initializeScenes: function() {
       this.scenes = Array.prototype.slice.call(
           this.$.scenes.getDistributedNodes());
       this.updateLocations();
@@ -198,32 +221,67 @@ Fired when the storybord's google map is ready to be rendered.
 
     updateContent: function() {
       var media = this.$.sceneMedia;
-      window.console.log(media.innerHTML);
-      media.innerHTML = this.currentScene.innerHTML;
-      media.style.display = "block";
+      var image = this.$.image
+      var currentNode = this.currentScene.firstChild;
+      if (currentNode instanceof HTMLImageElement) {
+        image.innerHTML = currentNode.outerHTML;
+        media.style.display = 'none';
+        if (image.innerHTML) {
+          image.style.display = 'inline-block';
+        }
+      }
+      else {
+        media.innerHTML = currentNode.textContent;
+        image.style.display = 'none';
+        if (media.innerHTML) {
+          media.style.display = 'inline-block';
+        }
+      }
     },
 
     updateLocations: function() {
       this.currentScene = this.currentScene || this.scenes[this.index];
       this.geocoder = this.geocoder || new google.maps.Geocoder();
       for (var i = 0; i < this.scenes.length; ++i) {
-        var address = this.scenes[i].address;
+        var scene = this.scenes[i];
+        if (scene.location instanceof google.maps.LatLng) continue;
         (function(index) {
-          this.geocoder.geocode( {address: address}, function(place, status) {
+          this.geocoder.geocode({address: scene.address}, 
+              function(place, status) {
             if (status == google.maps.GeocoderStatus.OK) {
               var scene = this.scenes[index];
               scene.location = place[0].geometry.location;
-              this.totalPath[index] = scene.location;
               if (scene === this.currentScene) {
                 this.index = index;
                 this.current = scene.id;
-                this.initialiseMap();
+                this.initializeMap();
                 this.updateContent();
               }
             }
           }.bind(this));
         }.bind(this))(i);
       }
+    },
+
+    updateScenes: function() {
+      this.updateTotalPath();
+      if (this.showMarkers) this.showMarkersChanged();
+    },
+
+    showMarkersChanged: function() {
+      if (!this.map) return;
+      var map = (this.showMarkers && this.map) || null;
+      for (var i in this.scenes) {
+        var marker = this.scenes[i].marker;
+        if (marker) marker.setMap(map);
+      }
+    },
+
+    disableDefaultUIChanged: function() {
+      if (!this.map) return;
+      this.map.setOptions({
+        disableDefaultUI: this.disableDefaultUI
+      });
     },
 
     currentChanged: function() {
@@ -236,7 +294,7 @@ Fired when the storybord's google map is ready to be rendered.
         if (sceneIndex != this.index) {
           var oldIndex = this.index.valueOf();
           this.index = sceneIndex;
-          this.totalPathChanged();
+          this.updateTotalPath();
           this.fitBounds([oldIndex, this.index], true);
         }
       } else {
@@ -284,24 +342,27 @@ Fired when the storybord's google map is ready to be rendered.
       }
     },
 
-    /**
-     * This method updates the polyline to point to `index`.
-     * NOTE: This stops any line animation in progress.
-     *
-     * @method totalPathChanged
-     */
-    totalPathChanged: function() {
-      if (this.map && this.index < this.totalPath.length) {
+    // TODO: Decide on behaviour at invalid locations and implement.
+    updateTotalPath: function() {
+      if (this.map) {
         this.stopAnimation(false);
         this.prevLine = this.prevLine || this.makePolyline(0.4);
         this.nextLine = this.nextLine || this.makePolyline(0.2);
-
-        var prevPath = Array.prototype.slice.call(this.totalPath, 0,
-            this.index + 1);
-        this.prevLine.setPath(prevPath);
-        var nextPath = Array.prototype.slice.call(this.totalPath,
-            this.index).reverse();
-        this.nextLine.setPath(nextPath);
+        var prevPath = this.prevLine.getPath().getArray();
+        var nextPath = this.nextLine.getPath().getArray();
+        var totalPath = prevPath.concat(nextPath.slice(0,-1).reverse());
+        // If the totalPath is incomplete, add points to the path until it is
+        // complete, or until it reaches a scene without a location.
+        // The totalPath and polyline is not constructed passed
+        // an invalid location.
+        for (var i = totalPath.length, scene; scene = this.scenes[i]; ++i) {
+          if (!scene.location) break;
+          totalPath.push(scene.location);
+        }
+        // Previous line path contains the points up to and including index
+        this.prevLine.setPath(totalPath.slice(0, this.index + 1));
+        // Next line path contains the points from the end to index (inclusive)
+        this.nextLine.setPath(totalPath.slice(this.index).reverse());
       }
     },
 
@@ -332,9 +393,13 @@ Fired when the storybord's google map is ready to be rendered.
      */
     fitBounds: function(indices, continueTransition) {
       if (this.map) {
+        var media = this.$.sceneMedia;
+        var image = this.$.image
+        media.style.display = 'none';
+        image.style.display = 'none';
         var bounds = new google.maps.LatLngBounds();
         for (var i in indices) {
-          bounds.extend(this.totalPath[indices[i]]);
+          bounds.extend(this.scenes[indices[i]].location);
         }
         this.map.fitBounds(bounds);
         if (continueTransition) this.uponMapIdle(this.panToScene);
@@ -348,8 +413,8 @@ Fired when the storybord's google map is ready to be rendered.
      */
     panToScene: function() {
       if (this.map) {
-        if (!this.map.getCenter().equals(this.totalPath[this.index])) {
-          this.map.panTo(this.totalPath[this.index]);
+        if (!this.map.getCenter().equals(this.scenes[this.index].location)) {
+          this.map.panTo(this.scenes[this.index].location);
           this.uponMapIdle(this.activateScene);
         } else {
           // If the map is already centered, activate the scene.
@@ -402,10 +467,21 @@ Fired when the storybord's google map is ready to be rendered.
      * @returns {google.maps.Polyline} The polyline created.
      */
     makePolyline: function(opacity) {
+      var dash = {
+        path: 'M 0,0 0,1',  // This is the svg for a dash.
+        strokeOpacity: opacity,
+        scale: 2
+      };
+      // The dash symbol (see icons) is repeated every 2px to form a solid line.
       var lineOptions = {
         map: this.map,
         geodesic: true,
-        strokeOpacity: opacity
+        strokeOpacity: 0,  // The line underneath the dashes is not visible.
+        icons: [{
+          icon: dash,
+          offset: '0px',
+          repeat: '2px'
+        }]
       };
       return new google.maps.Polyline(lineOptions);
     },
@@ -475,7 +551,7 @@ Fired when the storybord's google map is ready to be rendered.
     }
 
     var wayPoint = new google.maps.geometry.spherical.interpolate(
-        this.totalPath[from], this.totalPath[to], offset);
+        this.scenes[from].location, this.scenes[to].location, offset);
     setLast(this.nextLine, wayPoint);
     setLast(this.prevLine, wayPoint);
 
