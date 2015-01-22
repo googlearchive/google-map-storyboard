@@ -1,7 +1,7 @@
 <!--
 The 'google-map-storyboard' renders a Google Map with 'google-map-scene' elements.
 
-<b>Example</b> - Add scenes to the map and traverse them linearly:
+<b>Example</b> Add scenes to the map and traverse them linearly:
 
     <style>
       google-map-storyboard {
@@ -172,6 +172,25 @@ Fired when the storybord's google map is ready to be rendered.
      */
     currentScene: null,
 
+    /**
+     * The intervalId of the current line animation frame.
+     * Null if there is no current animation frame.
+     *
+     * @property intervalId
+     * @type Number
+     * @default null
+     */
+    intervalId: null,
+
+    /**
+     * Duration of each line animation in milliseconds.
+     *
+     * @property ANIMATION_TIME_MS
+     * @type Number
+     * @default 5000
+     */
+    ANIMATION_TIME_MS: 5000,
+
     mapApiLoaded: function() {
       this.initializeScenes();
     },
@@ -273,8 +292,10 @@ Fired when the storybord's google map is ready to be rendered.
       if (this.scenes) {
         var sceneIndex = this.scenes.indexOf(scene);
         if (sceneIndex != this.index) {
-          this.fitBounds([sceneIndex, this.index]);
+          var oldIndex = this.index.valueOf();
           this.index = sceneIndex;
+          this.updateTotalPath();
+          this.fitBounds([oldIndex, this.index], true);
         }
       } else {
         this.currentScene = scene;
@@ -291,7 +312,7 @@ Fired when the storybord's google map is ready to be rendered.
       if (this.index > 0) {
         var from = this.index.valueOf();
         this.index--;
-        this.fitBounds([from, from - 1]);
+        this.startAnimation(from, from - 1);
       }
     },
 
@@ -299,7 +320,7 @@ Fired when the storybord's google map is ready to be rendered.
       if (this.index < this.scenes.length - 1) {
         var from = this.index.valueOf();
         this.index++;
-        this.fitBounds([from, from + 1]);
+        this.startAnimation(from, from + 1);
       }
     },
 
@@ -324,6 +345,7 @@ Fired when the storybord's google map is ready to be rendered.
     // TODO: Decide on behaviour at invalid locations and implement.
     updateTotalPath: function() {
       if (this.map) {
+        this.stopAnimation(false);
         this.prevLine = this.prevLine || this.makePolyline(0.4);
         this.nextLine = this.nextLine || this.makePolyline(0.2);
         var prevPath = this.prevLine.getPath().getArray();
@@ -345,31 +367,31 @@ Fired when the storybord's google map is ready to be rendered.
     },
 
     /**
-     * The handler given will be executed when
-     * the next `idle` map event is fired.
-     *  - Only one handler is executed for each event.
-     *  - Each handler is only executed at most once.
-     *  - Overrides the previous handler.
-     *
      * @method uponMapIdle
+     * @param {Function} handler The handler to call when the map is idle.
+     * Will replace the existing idle handler. If null, removes the current
+     * idle handler.
      */
     uponMapIdle: function(handler) {
       google.maps.event.removeListener(this.idleListener);
-      this.idleListener = new google.maps.event.addListenerOnce(this.map,
-          'idle', handler.bind(this));
+      if (handler) {
+        this.idleListener = new google.maps.event.addListenerOnce(this.map,
+            'idle', handler.bind(this));
+      }
     },
 
     /**
      * Fit the bounds of the map to the given scene locations.
-     * The first stage of a transition to a scene.
-     * The transition to a scene:
+     * The first stage of the default transition to a scene.
+     * The default transition to a scene:
      *   - `fitBounds -> panToScene -> activateScene`
      *   - each change of state [`->`] occurs when the map is `idle`
      *
      * @method fitBounds
-     * @param Array.Number - indices of scenes (and their locations).
+     * @param {Array.Number} indices Indices of scenes to fit in the bounds.
+     * @param {Boolean} continueTransition If true, continue default transition.
      */
-    fitBounds: function(indices) {
+    fitBounds: function(indices, continueTransition) {
       if (this.map) {
         var media = this.$.sceneMedia;
         var image = this.$.image
@@ -380,7 +402,7 @@ Fired when the storybord's google map is ready to be rendered.
           bounds.extend(this.scenes[indices[i]].location);
         }
         this.map.fitBounds(bounds);
-        this.uponMapIdle(this.panToScene);
+        if (continueTransition) this.uponMapIdle(this.panToScene);
       }
     },
 
@@ -391,12 +413,11 @@ Fired when the storybord's google map is ready to be rendered.
      */
     panToScene: function() {
       if (this.map) {
-        this.updateTotalPath();
         if (!this.map.getCenter().equals(this.scenes[this.index].location)) {
           this.map.panTo(this.scenes[this.index].location);
           this.uponMapIdle(this.activateScene);
         } else {
-          // if the map is already centered, activate the scene
+          // If the map is already centered, activate the scene.
           this.activateScene();
         }
       }
@@ -418,6 +439,16 @@ Fired when the storybord's google map is ready to be rendered.
       }
     },
 
+    /**
+     * Makes a button which is added to the map controls.
+     *
+     * @method makeButton
+     * @param {String} id The button's id.
+     * @param {String} title The button's title.
+     * @param {String} text The text shown inside the button.
+     * @param {google.map.ControlPosition} controlPosition Position on the map.
+     * @param {Function} onClick The handler for a click event.
+     */
     makeButton: function(id, title, text, controlPosition, onClick) {
       var button = document.createElement('button');
       button.id = id;
@@ -428,6 +459,13 @@ Fired when the storybord's google map is ready to be rendered.
       this.map.controls[controlPosition].insertAt(0, button);
     },
 
+    /**
+     * Makes a polyline with the given opacity.
+     *
+     * @method makePolyline
+     * @param {Number} opacity The opacity of the polyline.
+     * @returns {google.maps.Polyline} The polyline created.
+     */
     makePolyline: function(opacity) {
       var dash = {
         path: 'M 0,0 0,1',  // This is the svg for a dash.
@@ -446,9 +484,91 @@ Fired when the storybord's google map is ready to be rendered.
         }]
       };
       return new google.maps.Polyline(lineOptions);
+    },
+
+    /**
+     * Start a line animation moving between the scenes indexed 'from' and 'to'.
+     * If another line animation/transition is in progress, stop it.
+     *
+     * @method startAnimation
+     * @param {Number} from The index of the scene it is animating from.
+     * @param {Number} to The index of the scene it is animating to.
+     */
+    startAnimation: function(from, to) {
+      if (!this.map) return;
+      this.uponMapIdle(null);
+      this.stopAnimation(false);
+
+      this.async(function() {
+        this.forward = (to > from);
+        var line = (!this.forward && this.nextLine) || this.prevLine;
+        line.getPath().push(getLast(line));
+        this.fitBounds([from, to], false);
+        /* NOTE: requestAnimationFrame gives the DOMHighResTimeStamp as the
+         * last parameter in the callback. (The 3rd parameter in this case.)
+         */
+        this.intervalId = window.requestAnimationFrame(
+            step.bind(this, from, to));
+      });
+    },
+
+    /**
+     * Stops the current line animation.
+     *
+     * @method stopAnimation
+     * @param {Boolean} finishTransition If true, finishes default transition.
+     */
+    stopAnimation: function(finishTransition) {
+      if (typeof this.intervalId != 'number') return;
+      window.cancelAnimationFrame(this.intervalId);
+      this.intervalId = null;
+      var shortenLine = (this.forward && this.nextLine) || this.prevLine;
+      shortenLine.getPath().pop();
+      var line = (!this.forward && this.nextLine) || this.prevLine;
+      setLast(line, getLast(shortenLine));
+      if (finishTransition) this.panToScene();
     }
 
   });
+
+  /**
+   * A step/frame of the line animation.
+   * Note: Expects `this` to be the storyboard.
+   *
+   * @method step
+   * @param {Number} from The index of the scene it is animating from.
+   * @param {Number} to The index of the scene it is animating to.
+   * @param {DOMHighResTimeStamp} startTime The animation start time.
+   * @param {DOMHighResTimeStamp} currentTime Optional, defaults to startTime.
+   */
+  function step(from, to, startTime, currentTime) {
+    if (!currentTime) currentTime = startTime;
+    var diffTime = currentTime - startTime;
+    var offset = (diffTime / this.ANIMATION_TIME_MS);
+    if (offset >= 1) {
+      this.stopAnimation(true);
+      return;
+    }
+
+    var wayPoint = new google.maps.geometry.spherical.interpolate(
+        this.scenes[from].location, this.scenes[to].location, offset);
+    setLast(this.nextLine, wayPoint);
+    setLast(this.prevLine, wayPoint);
+
+    this.intervalId = window.requestAnimationFrame(
+        step.bind(this, from, to, startTime));
+  }
+
+  function setLast(line, point) {
+    var path = line.getPath();
+    path.setAt(path.length - 1, point);
+  }
+
+  function getLast(line) {
+    var path = line.getPath();
+    return path.getAt(path.length - 1);
+  }
+
 })();
 </script>
 </polymer-element>
