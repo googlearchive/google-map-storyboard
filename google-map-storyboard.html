@@ -59,7 +59,28 @@ Fired when the storybord's google map is ready to be rendered.
       word-wrap: break-word;
       background-color: #ffffff;
       border: 1px solid black;
+      padding: 10px 10px 10px 10px;
+      font-family: Roboto;
+      font-size: 14px;
+      font-weight: 300;
     }
+    
+    #image {
+      display: inline-block;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+    
+    #toggle {
+      display: inline-block;
+      position: absolute;
+      height: 15px;
+      font-size: 0.75em;
+      background-color: #ffffff;
+      border: 1px solid gray;
+    } 
 
     button {
       opacity: 0.5;
@@ -79,6 +100,8 @@ Fired when the storybord's google map is ready to be rendered.
 
   <div id="map"></div>
   <div id="sceneMedia"></div>
+  <div id="image"></div>
+  <div id="toggle">Hide content</div>
 
   <content id="scenes" select="google-map-scene"></content>
 </template>
@@ -162,7 +185,45 @@ Fired when the storybord's google map is ready to be rendered.
             google.maps.ControlPosition.RIGHT_CENTER, this.getNext);
         this.updateControls();
         this.updateTotalPath();
-        this.fire('google-map-storyboard-ready');
+        //this.fire('google-map-storyboard-ready');
+        this.contentInteractivity();
+      }
+    },
+
+    checkReady: function() {
+      var allLoc = true;
+      for (var i = 0, scene; i<this.scenes.length; ++i) {
+        var scene = this.scenes[i];
+        if (!scene.location) allLoc = false;
+      }
+      if (allLoc === true) this.fire('google-map-storyboard-ready');
+    },
+
+    contentInteractivity: function() {
+      var media = this.$.sceneMedia;
+      var image = this.$.image;
+      var toggle = this.$.toggle;
+      google.maps.event.addDomListener(toggle,'click', function() {
+        if (image.style.display === 'none'&& media.style.display === 'none') {
+          toggle.innerHTML = "Hide content";
+          if (this.currentScene.firstChild instanceof HTMLImageElement) {
+            image.style.display = 'inline-block';
+          } else {
+            media.style.display = 'inline-block';
+          }
+        } else {
+          toggle.innerHTML = "Show content";
+          image.style.display = 'none';
+          media.style.display = 'none';
+        }
+      }.bind(this));
+      google.maps.event.addListener(this.map, 'dblclick', turnOffContent);
+      google.maps.event.addListener(this.map, 'drag', turnOffContent);
+      function turnOffContent() {
+        image.style.display = 'none';
+        media.style.display = 'none';
+        toggle.innerHTML = "Show content";
+        toggle.style.display = 'inline-block';
       }
     },
 
@@ -174,9 +235,60 @@ Fired when the storybord's google map is ready to be rendered.
 
     updateContent: function() {
       var media = this.$.sceneMedia;
-      window.console.log(media.innerHTML);
-      media.innerHTML = this.currentScene.innerHTML;
-      media.style.display = "block";
+      var image = this.$.image
+      var currentNode = this.currentScene.firstChild;
+      var toggle = this.$.toggle;
+      if (currentNode instanceof HTMLImageElement) {
+        image.innerHTML = currentNode.outerHTML;
+        media.style.display = 'none';
+        if (image.innerHTML) {
+          image.style.display = 'inline-block';
+        }
+      }
+      else {
+        media.innerHTML = currentNode.textContent;
+        image.style.display = 'none';
+        if (media.innerHTML) {
+          media.style.display = 'inline-block';
+        }
+      }
+      var imageListener = google.maps.event.addDomListener(media, 'click', changeContent.bind(this));
+      var mediaListener = google.maps.event.addDomListener(image, 'click', changeContent.bind(this));
+      function changeContent() {
+        if (currentNode.nextSibling != null){
+          currentNode = currentNode.nextSibling;
+          if (currentNode instanceof HTMLImageElement) {
+            image.innerHTML = currentNode.outerHTML;
+            media.style.display = 'none';
+            if (image.innerHTML) {
+              image.style.display = 'inline-block';
+            }
+          }
+          else {
+            media.innerHTML = currentNode.textContent;
+            image.style.display = 'none';
+            if (media.innerHTML) {
+              media.style.display = 'inline-block';
+            }
+          }
+        } else {
+          currentNode = this.currentScene.firstChild;
+          if (currentNode instanceof HTMLImageElement) {
+            image.innerHTML = currentNode.outerHTML;
+            media.style.display = 'none';
+            if (image.innerHTML) {
+              image.style.display = 'inline-block';
+            }
+          }
+          else {
+            media.innerHTML = currentNode.textContent;
+            image.style.display = 'none';
+            if (media.innerHTML) {
+              media.style.display = 'inline-block';
+            }
+          }
+        }
+      }
     },
 
     updateLocations: function() {
@@ -195,10 +307,11 @@ Fired when the storybord's google map is ready to be rendered.
               if (scene === this.currentScene) {
                 this.index = index;
                 this.current = scene.id;
-                this.initialiseMap();
                 this.updateContent();
+                this.initialiseMap();
               }
             }
+            this.checkReady();
           }.bind(this));
         }.bind(this))(i);
       }
@@ -218,6 +331,8 @@ Fired when the storybord's google map is ready to be rendered.
       } else {
         this.currentScene = scene;
       }
+      google.maps.event.removeListener(imageListener);
+      google.maps.event.removeListener(mediaListener)
     },
 
     indexChanged: function() {
@@ -267,12 +382,12 @@ Fired when the storybord's google map is ready to be rendered.
         this.nextLine = this.nextLine || this.makePolyline(0.2);
         var prevPath = this.prevLine.getPath().getArray();
         var nextPath = this.nextLine.getPath().getArray();
-        var totalPath = prevPath.concat(nextPath.slice(0,-1).reverse());
+        var totalPath = [];
         // If the totalPath is incomplete, add points to the path until it is
         // complete, or until it reaches a scene without a location.
         // The totalPath and polyline is not constructed passed
         // an invalid location.
-        for (var i = totalPath.length, scene; scene = this.scenes[i]; ++i) {
+        for (var i = 0, scene; scene = this.scenes[i]; ++i) {
           if (!scene.location) break;
           totalPath.push(scene.location);
         }
@@ -310,6 +425,12 @@ Fired when the storybord's google map is ready to be rendered.
      */
     fitBounds: function(indices) {
       if (this.map) {
+        var media = this.$.sceneMedia;
+        var image = this.$.image
+        var toggle = this.$.toggle;
+        media.style.display = 'none';
+        image.style.display = 'none';
+        toggle.innerHTML = "Hide content";
         var bounds = new google.maps.LatLngBounds();
         for (var i in indices) {
           bounds.extend(this.scenes[indices[i]].location);
@@ -327,7 +448,6 @@ Fired when the storybord's google map is ready to be rendered.
     panToScene: function() {
       if (this.map) {
         this.updateTotalPath();
-
         if (!this.map.getCenter().equals(this.scenes[this.index].location)) {
           this.map.panTo(this.scenes[this.index].location);
           this.uponMapIdle(this.activateScene);
