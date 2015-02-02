@@ -209,6 +209,7 @@ Fired when the storybord's google map is ready to be rendered.
         this.updateControls();
         this.updateScenes();
         this.activateScene();
+        this.fire('google-map-storyboard-ready');
       }
     },
 
@@ -217,7 +218,7 @@ Fired when the storybord's google map is ready to be rendered.
         var scene = this.scenes[i];
         if (!scene.location) return;
       }
-      this.fire('google-map-storyboard-ready');
+      this.initializeMap();
     },
 
     initializeScenes: function() {
@@ -232,36 +233,29 @@ Fired when the storybord's google map is ready to be rendered.
       var contentString;
       if (currentNode instanceof HTMLImageElement) {
         contentString = currentNode.outerHTML;
-      } else contentString = currentNode.textContent;
-      this.infowindow.setContent(contentString);
-      if (this.scenes[this.index].marker)
-	this.infowindow.open(this.map,this.scenes[this.index].marker);
-      else {
-        this.infowindow.setPosition(this.currentScene.location);
-	this.infowindow.open(this.map);
+      } else if (currentNode === null) {
+        window.console.log("no content");
+        contentString = "";
       }
-      google.maps.event.addListener(this.map, 'zoom_changed', function(){
-        this.infowindow.close();
-      }.bind(this));
-      //google.maps.event.addListener(this.scenes[this.index].marker, 'click', changeContent.bind(this));
-      function changeContent() {
-        if (currentNode.nextSibling != null){
-          currentNode = currentNode.nextSibling;
-          if (currentNode instanceof HTMLImageElement) {
-            infowindow.setContent(currentNode.outerHTML);
-          }
-          else {
-            infowindow.setContent(currentNode.textContent);
-          }
-        } else {
-          currentNode = this.currentScene.firstChild;
-          if (currentNode instanceof HTMLImageElement) {
-            infowindow.setContent(currentNode.outerHTML);
-          }
-          else {
-            infowindow.setContent(currentNode.textContent);
-          }
+      else {
+        window.console.log("text");
+        contentString = currentNode.textContent;
+      }
+      this.infowindow.setContent(contentString);
+      if (this.scenes[this.index].marker) {
+        if (currentNode != null) {
+	  this.infowindow.open(this.map,this.scenes[this.index].marker);
         }
+      } else {
+        this.infowindow.setPosition(this.currentScene.location);
+	if (currentNode != null) {
+          this.infowindow.open(this.map);
+        }
+      }
+      google.maps.event.addListener(this.map, 'zoom-changed', onInteraction.bind(this));
+      google.maps.event.addListener(this.map, 'center_changed', onInteraction.bind(this));
+      function onInteraction(){
+        this.infowindow.close();
       }
     },
 
@@ -281,7 +275,6 @@ Fired when the storybord's google map is ready to be rendered.
                 this.index = index;
                 this.current = scene.id;
                 scene.locationChanged();
-                this.initializeMap();
               }
             }
             this.checkReady();
