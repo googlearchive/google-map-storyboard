@@ -25,6 +25,7 @@ Fired when the storybord's google map is ready to be rendered.
 <link rel="import" href="bower_components/polymer/polymer.html">
 <link rel="import" href="bower_components/google-apis/google-apis.html">
 <link rel="import" href="google-map-scene.html">
+<script src="TransitionManager.js"></script>
 
 <polymer-element name="google-map-storyboard" attributes="apiKey current showMarkers disableDefaultUI">
 <template>
@@ -83,13 +84,13 @@ Fired when the storybord's google map is ready to be rendered.
     
   </style>
 
-  <google-maps-api apiKey="{{apiKey}}" version="3.exp" libraries="places,geometry" on-api-load="{{mapApiLoaded}}"></google-maps-api>
+  <google-maps-api apiKey="{{apiKey}}" version="3.exp" libraries="places,geometry" on-api-load="{{mapAPILoaded}}"></google-maps-api>
 
   <div id="map"></div>
   <div id="sceneMedia"></div>
   <div id="image"></div>
 
-  <content id="scenes" select="google-map-scene" on-scene-location-changed="{{updateScenes}}"></content>
+  <content id="scenes" select="google-map-scene" on-scene-changed="{{updateScene}}"></content>
 </template>
 
 
@@ -100,11 +101,11 @@ Fired when the storybord's google map is ready to be rendered.
     /**
      * Array of the google-map-scenes contained within the storyboard.
      * 
-     * @property scenes
+     * @property validScenes
      * @type Array.google-map-scene
      * @default null
      */
-    scenes: null,
+    validScenes: null,
 
     /**
      * The google map used in the storyboard.
@@ -155,15 +156,6 @@ Fired when the storybord's google map is ready to be rendered.
     disableDefaultUI: true,
 
     /**
-     * The index of the upcoming scene.
-     * 
-     * @property index
-     * @type Number
-     * @default 0
-     */
-    index: 0,
-
-    /**
      * The current scene. Initialised to the first scene.
      *
      * @property currentScene
@@ -173,27 +165,12 @@ Fired when the storybord's google map is ready to be rendered.
     currentScene: null,
 
     /**
-     * The intervalId of the current line animation frame.
-     * Null if there is no current animation frame.
-     *
-     * @property intervalId
-     * @type Number
+     * The storyboard's transition and animation manager.
+     * @property transitionManager
+     * @type LinearAnimationManager
      * @default null
      */
-    intervalId: null,
-
-    /**
-     * Duration of each line animation in milliseconds.
-     *
-     * @property ANIMATION_TIME_MS
-     * @type Number
-     * @default 5000
-     */
-    ANIMATION_TIME_MS: 5000,
-
-    mapApiLoaded: function() {
-      this.initializeScenes();
-    },
+    transitionManager: null,
 
     initializeMap: function() {
       if (!this.map) {
@@ -208,15 +185,10 @@ Fired when the storybord's google map is ready to be rendered.
         this.makeButton("next", "Next", ">", 
             google.maps.ControlPosition.RIGHT_CENTER, this.getNext);
         this.updateControls();
-        this.updateScenes();
+        this.transitionManager.setMap(this.map);
+        this.showMarkersChanged();
         this.fire('google-map-storyboard-ready');
       }
-    },
-
-    initializeScenes: function() {
-      this.scenes = Array.prototype.slice.call(
-          this.$.scenes.getDistributedNodes());
-      this.updateLocations();
     },
 
     updateContent: function() {
@@ -239,42 +211,119 @@ Fired when the storybord's google map is ready to be rendered.
       }
     },
 
-    updateLocations: function() {
-      this.currentScene = this.currentScene || this.scenes[this.index];
-      this.geocoder = this.geocoder || new google.maps.Geocoder();
-      for (var i = 0; i < this.scenes.length; ++i) {
-        var scene = this.scenes[i];
-        if (scene.location instanceof google.maps.LatLng) continue;
-        (function(index) {
-          this.geocoder.geocode({address: scene.address}, 
-              function(place, status) {
-            if (status == google.maps.GeocoderStatus.OK) {
-              var scene = this.scenes[index];
-              scene.location = place[0].geometry.location;
-              if (scene === this.currentScene) {
-                this.index = index;
-                this.current = scene.id;
-                this.initializeMap();
-                this.updateContent();
-              }
-            }
-          }.bind(this));
-        }.bind(this))(i);
+    mapAPILoaded: function() {
+      this.transitionManager = this.transitionManager || 
+          new LinearAnimationManager();
+      this.validScenes = this.validScenes || new google.maps.MVCArray();
+      this.initializeScenes();
+    },
+
+    initializeScenes: function() {
+      var allScenes = Array.prototype.slice.call(
+          this.$.scenes.getDistributedNodes());
+      this.validScenes.clear();
+      this.currentScene = this.currentScene || allScenes[0];
+      for (var i = 0, scene; scene = allScenes[i]; ++i) {
+        scene.fireSceneChanged();
       }
     },
 
-    updateScenes: function() {
-      this.updateTotalPath();
-      if (this.showMarkers) this.showMarkersChanged();
+    updateScene: function(details) {
+      // Return if the maps API hasn't loaded yet.
+      if (!this.validScenes) return;
+      var scene = details.srcElement;
+
+      // If there is a new address to geocode, geocode it.
+      if (!scene.ignoreAddress) this.geocodeScene(scene);
+      // If this is the current scene, and it is invalid, find the replacement.
+      if (scene === this.currentScene && isInvalidScene(scene)) {
+        this.updateCurrentScene();
+      }
+      // TODO: Deal with scene removals.
+      if (!isValidScene(scene)) return;
+
+      var sceneIndex = this.validScenes.indexOf(scene);
+      // If the scene is not already in validScenes, insert it.
+      if (sceneIndex < 0) {
+        sceneIndex = 0;
+        var allScenes = Array.prototype.slice.call(
+            this.$.scenes.getDistributedNodes());
+        var nextValid = this.validScenes.getAt(0);
+        for (var i = 0, nextScene; nextValid, nextScene = allScenes[i], 
+            nextScene != scene; ++i) {
+          if (this.validScenes.getAt(sceneIndex) === nextScene) {
+            nextValid = this.validScenes.getAt(++sceneIndex);
+          }
+        }
+        this.validScenes.insertAt(sceneIndex, scene);
+        this.transitionManager.insertAt(sceneIndex, scene.location);
+        if (this.showMarkers && scene.marker) scene.marker.setMap(this.map);
+      } else {  // Otherwise the scene location has changed.
+        this.transitionManager.setAt(sceneIndex, scene.location);
+      }
+
+      // If the map is initialized, update the markers and the controls.
+      if (!this.map) {
+        if (scene != this.currentScene) return;
+        this.transitionManager.setCurrentIndex(sceneIndex, null);
+        this.initializeMap();
+        return;
+      }
+      this.updateControls();
+    },
+
+    geocodeScene: function(scene) {
+      if (scene.ignoreAddress) return;
+      var address = scene.address.valueOf();
+      this.geocoder = this.geocoder || new google.maps.Geocoder();
+      this.geocoder.geocode({address: address}, 
+          function(place, status) {
+        // Set ignore the address to true if the address hasn't changed.
+        scene.ignoreAddress = (address === scene.address);
+        if (status == google.maps.GeocoderStatus.OK) {
+          scene.location = place[0].geometry.location;
+        } else {
+          scene.warn("Address %s failed to geocode due to %s. It " +
+              "is shown at location %s.", address, status, scene.location);
+        }
+      }.bind(this));
+    },
+
+    /**
+     * If the currentScene is invalid, finds the next (consecutive) non-invalid 
+     * currentScene.  A scene is non-invalid if the address is being geocoded, 
+     * or it has a valid location.
+     *
+     * @method updateCurrentScene
+     */
+    updateCurrentScene: function() {
+      if (isValidScene(this.currentScene)) return;
+      // Find a new current scene.
+      var allScenes = Array.prototype.slice.call(
+          this.$.scenes.getDistributedNodes());
+      var index = allScenes.indexOf(this.currentScene);
+      if (typeof index != 'number') index = 0;
+      for (var i = 0; i < allScenes.length - 1; ++i) {
+        var scene = allScenes[(i + index) % allScenes.length];
+        if (!isInvalidScene(scene)) {
+          this.currentScene = scene;
+          scene.fireSceneChanged(false);
+          return;
+        }
+      }
+      this.warn("Warning! All scenes in this storyboard are currently invalid.");
+    },
+
+    warn: function() {
+      console.warn.apply(console, Array.prototype.slice.call(arguments));
     },
 
     showMarkersChanged: function() {
       if (!this.map) return;
       var map = (this.showMarkers && this.map) || null;
-      for (var i in this.scenes) {
-        var marker = this.scenes[i].marker;
-        if (marker) marker.setMap(map);
-      }
+      this.validScenes.forEach(function(scene) {
+        if (scene.marker) scene.marker.setMap(map);
+      });
     },
 
     disableDefaultUIChanged: function() {
@@ -284,49 +333,46 @@ Fired when the storybord's google map is ready to be rendered.
       });
     },
 
+    currentSceneChanged: function() {
+      this.current = this.currentScene.id;
+    },
+
     currentChanged: function() {
       var scene = document.getElementById(this.current);
       if (!scene || scene.element.name != 'google-map-scene') {
         return;
       }
-      if (this.scenes) {
-        var sceneIndex = this.scenes.indexOf(scene);
-        if (sceneIndex != this.index) {
-          var oldIndex = this.index.valueOf();
-          this.index = sceneIndex;
-          this.updateTotalPath();
-          this.fitBounds([oldIndex, this.index], true);
-        }
-      } else {
-        this.currentScene = scene;
+      if (this.validScenes && this.transitionManager) {
+        var sceneIndex = this.validScenes.indexOf(scene);
+        if (this.map) this.transitionManager.setCurrentIndex(sceneIndex, 
+            this.activateScene.bind(this));
       }
+      this.currentScene = scene;
     },
 
-    indexChanged: function() {
-      if (this.map) {
+    getPrev: function() {
+      if (this.transitionManager.hasPrev()) {
+        this.transitionManager.prev(this.activateScene.bind(this));
         this.updateControls();
       }
     },
 
-    getPrev: function() {
-      if (this.index > 0) {
-        var from = this.index.valueOf();
-        this.index--;
-        this.startAnimation(from, from - 1);
-      }
-    },
-
     getNext: function() {
-      if (this.index < this.scenes.length - 1) {
-        var from = this.index.valueOf();
-        this.index++;
-        this.startAnimation(from, from + 1);
+      if (this.transitionManager.hasNext()) {
+        this.transitionManager.next(this.activateScene.bind(this));
+        this.updateControls();
       }
     },
 
+    /**
+     * If the index is changed, update the controls on the map.
+     *
+     * @method updateControls
+     */
     updateControls: function() {
+      if (!this.map) return;
       var control = this.map.controls[google.maps.ControlPosition.LEFT_CENTER];
-      if (this.index < 1) {
+      if (!this.transitionManager.hasPrev()) {
         this.prevButton = this.prevButton || control.removeAt(0);
       } else if (this.prevButton) {
         control.insertAt(0, this.prevButton);
@@ -334,92 +380,11 @@ Fired when the storybord's google map is ready to be rendered.
       }
 
       control = this.map.controls[google.maps.ControlPosition.RIGHT_CENTER];
-      if (this.index > this.scenes.length - 2) {
+      if (!this.transitionManager.hasNext()) {
         this.nextButton = this.nextButton || control.removeAt(0);
       } else if (this.nextButton) {
         control.insertAt(0, this.nextButton);
         this.nextButton = null;
-      }
-    },
-
-    // TODO: Decide on behaviour at invalid locations and implement.
-    updateTotalPath: function() {
-      if (this.map) {
-        this.stopAnimation(false);
-        this.prevLine = this.prevLine || this.makePolyline(0.4);
-        this.nextLine = this.nextLine || this.makePolyline(0.2);
-        var prevPath = this.prevLine.getPath().getArray();
-        var nextPath = this.nextLine.getPath().getArray();
-        var totalPath = prevPath.concat(nextPath.slice(0,-1).reverse());
-        // If the totalPath is incomplete, add points to the path until it is
-        // complete, or until it reaches a scene without a location.
-        // The totalPath and polyline is not constructed passed
-        // an invalid location.
-        for (var i = totalPath.length, scene; scene = this.scenes[i]; ++i) {
-          if (!scene.location) break;
-          totalPath.push(scene.location);
-        }
-        // Previous line path contains the points up to and including index
-        this.prevLine.setPath(totalPath.slice(0, this.index + 1));
-        // Next line path contains the points from the end to index (inclusive)
-        this.nextLine.setPath(totalPath.slice(this.index).reverse());
-      }
-    },
-
-    /**
-     * @method uponMapIdle
-     * @param {Function} handler The handler to call when the map is idle.
-     * Will replace the existing idle handler. If null, removes the current
-     * idle handler.
-     */
-    uponMapIdle: function(handler) {
-      google.maps.event.removeListener(this.idleListener);
-      if (handler) {
-        this.idleListener = new google.maps.event.addListenerOnce(this.map,
-            'idle', handler.bind(this));
-      }
-    },
-
-    /**
-     * Fit the bounds of the map to the given scene locations.
-     * The first stage of the default transition to a scene.
-     * The default transition to a scene:
-     *   - `fitBounds -> panToScene -> activateScene`
-     *   - each change of state [`->`] occurs when the map is `idle`
-     *
-     * @method fitBounds
-     * @param {Array.Number} indices Indices of scenes to fit in the bounds.
-     * @param {Boolean} continueTransition If true, continue default transition.
-     */
-    fitBounds: function(indices, continueTransition) {
-      if (this.map) {
-        var media = this.$.sceneMedia;
-        var image = this.$.image
-        media.style.display = 'none';
-        image.style.display = 'none';
-        var bounds = new google.maps.LatLngBounds();
-        for (var i in indices) {
-          bounds.extend(this.scenes[indices[i]].location);
-        }
-        this.map.fitBounds(bounds);
-        if (continueTransition) this.uponMapIdle(this.panToScene);
-      }
-    },
-
-    /**
-     * Pan to the upcoming scene (the scene that `index` points to).
-     *
-     * @method panToScene
-     */
-    panToScene: function() {
-      if (this.map) {
-        if (!this.map.getCenter().equals(this.scenes[this.index].location)) {
-          this.map.panTo(this.scenes[this.index].location);
-          this.uponMapIdle(this.activateScene);
-        } else {
-          // If the map is already centered, activate the scene.
-          this.activateScene();
-        }
       }
     },
 
@@ -430,7 +395,7 @@ Fired when the storybord's google map is ready to be rendered.
      */
     activateScene: function() {
       if (this.map) {
-        var scene = this.scenes[this.index];
+        var scene = this.validScenes.getAt(this.transitionManager.getCurrentIndex());
         this.map.setZoom(scene.zoom);
         this.map.setCenter(scene.location);
         this.currentScene = scene;
@@ -457,116 +422,40 @@ Fired when the storybord's google map is ready to be rendered.
       button.appendChild(content);
       google.maps.event.addDomListener(button, 'click', onClick.bind(this));
       this.map.controls[controlPosition].insertAt(0, button);
-    },
-
-    /**
-     * Makes a polyline with the given opacity.
-     *
-     * @method makePolyline
-     * @param {Number} opacity The opacity of the polyline.
-     * @returns {google.maps.Polyline} The polyline created.
-     */
-    makePolyline: function(opacity) {
-      var dash = {
-        path: 'M 0,0 0,1',  // This is the svg for a dash.
-        strokeOpacity: opacity,
-        scale: 2
-      };
-      // The dash symbol (see icons) is repeated every 2px to form a solid line.
-      var lineOptions = {
-        map: this.map,
-        geodesic: true,
-        strokeOpacity: 0,  // The line underneath the dashes is not visible.
-        icons: [{
-          icon: dash,
-          offset: '0px',
-          repeat: '2px'
-        }]
-      };
-      return new google.maps.Polyline(lineOptions);
-    },
-
-    /**
-     * Start a line animation moving between the scenes indexed 'from' and 'to'.
-     * If another line animation/transition is in progress, stop it.
-     *
-     * @method startAnimation
-     * @param {Number} from The index of the scene it is animating from.
-     * @param {Number} to The index of the scene it is animating to.
-     */
-    startAnimation: function(from, to) {
-      if (!this.map) return;
-      this.uponMapIdle(null);
-      this.stopAnimation(false);
-
-      this.async(function() {
-        this.forward = (to > from);
-        var line = (!this.forward && this.nextLine) || this.prevLine;
-        line.getPath().push(getLast(line));
-        this.fitBounds([from, to], false);
-        /* NOTE: requestAnimationFrame gives the DOMHighResTimeStamp as the
-         * last parameter in the callback. (The 3rd parameter in this case.)
-         */
-        this.intervalId = window.requestAnimationFrame(
-            step.bind(this, from, to));
-      });
-    },
-
-    /**
-     * Stops the current line animation.
-     *
-     * @method stopAnimation
-     * @param {Boolean} finishTransition If true, finishes default transition.
-     */
-    stopAnimation: function(finishTransition) {
-      if (typeof this.intervalId != 'number') return;
-      window.cancelAnimationFrame(this.intervalId);
-      this.intervalId = null;
-      var shortenLine = (this.forward && this.nextLine) || this.prevLine;
-      shortenLine.getPath().pop();
-      var line = (!this.forward && this.nextLine) || this.prevLine;
-      setLast(line, getLast(shortenLine));
-      if (finishTransition) this.panToScene();
     }
 
   });
 
   /**
-   * A step/frame of the line animation.
-   * Note: Expects `this` to be the storyboard.
+   * A scene is invalid if has an invalid address and invalid location.
    *
-   * @method step
-   * @param {Number} from The index of the scene it is animating from.
-   * @param {Number} to The index of the scene it is animating to.
-   * @param {DOMHighResTimeStamp} startTime The animation start time.
-   * @param {DOMHighResTimeStamp} currentTime Optional, defaults to startTime.
+   * @method isInvalidScene
+   * @param {google-map-scene} scene The scene to check if it is invalid or not.
+   * @returns {Boolean} True if the scene has an invalid address and location.
    */
-  function step(from, to, startTime, currentTime) {
-    if (!currentTime) currentTime = startTime;
-    var diffTime = currentTime - startTime;
-    var offset = (diffTime / this.ANIMATION_TIME_MS);
-    if (offset >= 1) {
-      this.stopAnimation(true);
-      return;
-    }
-
-    var wayPoint = new google.maps.geometry.spherical.interpolate(
-        this.scenes[from].location, this.scenes[to].location, offset);
-    setLast(this.nextLine, wayPoint);
-    setLast(this.prevLine, wayPoint);
-
-    this.intervalId = window.requestAnimationFrame(
-        step.bind(this, from, to, startTime));
+  function isInvalidScene(scene) {
+    return (scene.ignoreAddress && !isLatLng(scene.location));
   }
 
-  function setLast(line, point) {
-    var path = line.getPath();
-    path.setAt(path.length - 1, point);
+  /**
+   * A scene is valid and well defined if it has a valid location.
+   *
+   * @method isValidScene
+   * @param {google-map-scene} scene The scene to check if it is valid or not.
+   * @returns {Boolean} True if the scene has a valid location.
+   */
+  function isValidScene(scene) {
+    return isLatLng(scene.location);
   }
 
-  function getLast(line) {
-    var path = line.getPath();
-    return path.getAt(path.length - 1);
+  /**
+   *
+   * @method isLatLng
+   * @param {Object} location The location to be checked.
+   * @returns {Boolean} If true, the location is an instance of google.maps.LatLng
+   */
+  function isLatLng(location) {
+    return location instanceof google.maps.LatLng;
   }
 
 })();

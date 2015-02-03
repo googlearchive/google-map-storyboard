@@ -66,8 +66,24 @@ Fired when the scene's location has been changed.
      */
     marker: null,
 
+
+    /**
+     * If the address should be ignored. 
+     * True if the current address has been geocoded.
+     *
+     * @property ignoreAddress
+     * @type Boolean
+     * @default true
+     */
+    ignoreAddress: true,
+
+    attached: function() {
+      this.fireSceneChanged();
+    },
+
     detached: function() {
       if (this.marker) this.marker.setMap(null);
+      this.fireSceneChanged();
     },
 
     getStoryboard: function() {
@@ -75,12 +91,19 @@ Fired when the scene's location has been changed.
       return storyboard;
     },
 
+    addressChanged: function() {
+      this.ignoreAddress = !this.address;
+      this.fireSceneChanged();
+    },
+
     locationChanged: function() {
-      if (this.location instanceof google.maps.LatLng){
-        if (!this.marker) this.makeMarker();
-        this.marker.setPosition(this.location);
-      }
-      this.fire('scene-location-changed');
+      if (!this.marker) this.makeMarker();
+      this.marker.setPosition(this.location);
+      this.fireSceneChanged();
+    },
+
+    fireSceneChanged: function() {
+      this.fire('scene-changed');
     },
 
     makeMarker: function() {
@@ -88,6 +111,11 @@ Fired when the scene's location has been changed.
         map: null,
         location: this.location
       });
+    },
+
+    warn: function() {
+      console.warn.apply(console, Array.prototype.slice.call(arguments));
+      this.fireSceneChanged();
     }
 
   });
