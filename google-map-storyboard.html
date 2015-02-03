@@ -102,7 +102,7 @@ Fired when the storybord's google map is ready to be rendered.
      * Array of the google-map-scenes contained within the storyboard.
      * 
      * @property validScenes
-     * @type Array.google-map-scene
+     * @type google.maps.MVCArray.<google-map-scene>
      * @default null
      */
     validScenes: null,
@@ -141,7 +141,7 @@ Fired when the storybord's google map is ready to be rendered.
      * If true, there is a marker shown at each scene.
      *
      * @attribute showMarkers
-     * @type Boolean
+     * @type boolean
      * @default true
      */
     showMarkers: true,
@@ -150,7 +150,7 @@ Fired when the storybord's google map is ready to be rendered.
      * If true, removes the map's default UI controls.
      *
      * @attribute disableDefaultUI
-     * @type Boolean
+     * @type boolean
      * @default true
      */
     disableDefaultUI: true,
@@ -365,7 +365,7 @@ Fired when the storybord's google map is ready to be rendered.
     },
 
     /**
-     * If the index is changed, update the controls on the map.
+     * Updates the next and previous controls on the map.
      *
      * @method updateControls
      */
@@ -389,7 +389,7 @@ Fired when the storybord's google map is ready to be rendered.
     },
 
     /**
-     * Activate the upcoming scene.
+     * Activates the upcoming scene.
      *
      * @method activateScene
      */
@@ -427,32 +427,34 @@ Fired when the storybord's google map is ready to be rendered.
   });
 
   /**
+   * Checks if a scene is invalid.
    * A scene is invalid if has an invalid address and invalid location.
    *
    * @method isInvalidScene
    * @param {google-map-scene} scene The scene to check if it is invalid or not.
-   * @returns {Boolean} True if the scene has an invalid address and location.
+   * @returns {boolean} True if the scene has an invalid address and location.
    */
   function isInvalidScene(scene) {
     return (scene.ignoreAddress && !isLatLng(scene.location));
   }
 
   /**
+   * Checks if a scene is valid.
    * A scene is valid and well defined if it has a valid location.
    *
    * @method isValidScene
    * @param {google-map-scene} scene The scene to check if it is valid or not.
-   * @returns {Boolean} True if the scene has a valid location.
+   * @returns {boolean} True if the scene has a valid location.
    */
   function isValidScene(scene) {
     return isLatLng(scene.location);
   }
 
   /**
-   *
    * @method isLatLng
    * @param {Object} location The location to be checked.
-   * @returns {Boolean} If true, the location is an instance of google.maps.LatLng
+   * @returns {boolean} If true, the location is an
+   * instance of google.maps.LatLng.
    */
   function isLatLng(location) {
     return location instanceof google.maps.LatLng;
