@@ -86,8 +86,6 @@ Fired when the storybord's google map is ready to be rendered.
   <google-maps-api apiKey="{{apiKey}}" version="3.exp" libraries="places,geometry" on-api-load="{{mapApiLoaded}}"></google-maps-api>
 
   <div id="map"></div>
-  <div id="sceneMedia"></div>
-  <div id="image"></div>
 
   <content id="scenes" select="google-map-scene" on-scene-location-changed="{{updateScenes}}"></content>
 </template>
@@ -207,10 +205,20 @@ Fired when the storybord's google map is ready to be rendered.
             google.maps.ControlPosition.LEFT_CENTER, this.getPrev);
         this.makeButton("next", "Next", ">", 
             google.maps.ControlPosition.RIGHT_CENTER, this.getNext);
+        this.infowindow = new google.maps.InfoWindow;
         this.updateControls();
         this.updateScenes();
+        this.activateScene();
         this.fire('google-map-storyboard-ready');
       }
+    },
+
+    checkReady: function() {
+      for (var i = 0, scene; i < this.scenes.length; ++i) {
+        var scene = this.scenes[i];
+        if (!scene.location) return;
+      }
+      this.initializeMap();
     },
 
     initializeScenes: function() {
@@ -220,22 +228,31 @@ Fired when the storybord's google map is ready to be rendered.
     },
 
     updateContent: function() {
-      var media = this.$.sceneMedia;
-      var image = this.$.image
-      var currentNode = this.currentScene.firstChild;
-      if (currentNode instanceof HTMLImageElement) {
-        image.innerHTML = currentNode.outerHTML;
-        media.style.display = 'none';
-        if (image.innerHTML) {
-          image.style.display = 'inline-block';
+      if (!this.map) return;
+      var currentNode = this.scenes[this.index].firstChild;
+      var contentString = '';
+      if (currentNode) {
+        contentString = currentNode instanceof HTMLImageElement ?
+          currentNode.outerHTML : 
+          currentNode.textContent;
+      }
+      this.infowindow.setContent(contentString);
+      if (this.scenes[this.index].marker) {
+        if (currentNode) {
+          this.infowindow.open(this.map,this.scenes[this.index].marker);
+        }
+      } else {
+        this.infowindow.setPosition(this.currentScene.location);
+        if (currentNode) {
+          this.infowindow.open(this.map);
         }
       }
-      else {
-        media.innerHTML = currentNode.textContent;
-        image.style.display = 'none';
-        if (media.innerHTML) {
-          media.style.display = 'inline-block';
-        }
+      google.maps.event.addListener(this.map, 'zoom_changed',
+          onInteraction.bind(this));
+      google.maps.event.addListener(this.map, 'center_changed',
+          onInteraction.bind(this));
+      function onInteraction() {
+        this.infowindow.close();
       }
     },
 
@@ -254,10 +271,10 @@ Fired when the storybord's google map is ready to be rendered.
               if (scene === this.currentScene) {
                 this.index = index;
                 this.current = scene.id;
-                this.initializeMap();
-                this.updateContent();
+                scene.locationChanged();
               }
             }
+            this.checkReady();
           }.bind(this));
         }.bind(this))(i);
       }
@@ -393,10 +410,6 @@ Fired when the storybord's google map is ready to be rendered.
      */
     fitBounds: function(indices, continueTransition) {
       if (this.map) {
-        var media = this.$.sceneMedia;
-        var image = this.$.image
-        media.style.display = 'none';
-        image.style.display = 'none';
         var bounds = new google.maps.LatLngBounds();
         for (var i in indices) {
           bounds.extend(this.scenes[indices[i]].location);
