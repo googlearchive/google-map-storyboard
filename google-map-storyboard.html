@@ -238,12 +238,12 @@ Fired when the storybord's google map is ready to be rendered.
       }
       this.infowindow.setContent(contentString);
       if (this.scenes[this.index].marker) {
-        if (currentNode != null) {
-	  this.infowindow.open(this.map,this.scenes[this.index].marker);
+        if (currentNode) {
+          this.infowindow.open(this.map,this.scenes[this.index].marker);
         }
       } else {
         this.infowindow.setPosition(this.currentScene.location);
-	if (currentNode != null) {
+	if (currentNode) {
           this.infowindow.open(this.map);
         }
       }
@@ -251,7 +251,7 @@ Fired when the storybord's google map is ready to be rendered.
           onInteraction.bind(this));
       google.maps.event.addListener(this.map, 'center_changed',
           onInteraction.bind(this));
-      function onInteraction(){
+      function onInteraction() {
         this.infowindow.close();
       }
     },
