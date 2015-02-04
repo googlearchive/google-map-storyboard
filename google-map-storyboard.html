@@ -166,6 +166,7 @@ Fired when the storybord's google map is ready to be rendered.
 
     /**
      * The storyboard's transition and animation manager.
+     *
      * @property transitionManager
      * @type LinearAnimationManager
      * @default null
@@ -185,7 +186,7 @@ Fired when the storybord's google map is ready to be rendered.
         this.makeButton("next", "Next", ">", 
             google.maps.ControlPosition.RIGHT_CENTER, this.getNext);
         this.updateControls();
-        this.transitionManager.setMap(this.map);
+        this.transitionManager.map = this.map;
         this.showMarkersChanged();
         this.fire('google-map-storyboard-ready');
       }
@@ -213,7 +214,7 @@ Fired when the storybord's google map is ready to be rendered.
 
     mapAPILoaded: function() {
       this.transitionManager = this.transitionManager || 
-          new LinearAnimationManager();
+          new LinearAnimationManager(this.map);
       this.validScenes = this.validScenes || new google.maps.MVCArray();
       this.initializeScenes();
     },
@@ -251,7 +252,7 @@ Fired when the storybord's google map is ready to be rendered.
         var nextValid = this.validScenes.getAt(0);
         for (var i = 0, nextScene; nextValid, nextScene = allScenes[i], 
             nextScene != scene; ++i) {
-          if (this.validScenes.getAt(sceneIndex) === nextScene) {
+          if (nextValid === nextScene) {
             nextValid = this.validScenes.getAt(++sceneIndex);
           }
         }
@@ -302,12 +303,12 @@ Fired when the storybord's google map is ready to be rendered.
       var allScenes = Array.prototype.slice.call(
           this.$.scenes.getDistributedNodes());
       var index = allScenes.indexOf(this.currentScene);
-      if (typeof index != 'number') index = 0;
+      if (index < 0) index = 0;
       for (var i = 0; i < allScenes.length - 1; ++i) {
         var scene = allScenes[(i + index) % allScenes.length];
         if (!isInvalidScene(scene)) {
           this.currentScene = scene;
-          scene.fireSceneChanged(false);
+          if(scene.location) scene.fireSceneChanged();
           return;
         }
       }
@@ -395,11 +396,11 @@ Fired when the storybord's google map is ready to be rendered.
      */
     activateScene: function() {
       if (this.map) {
-        var scene = this.validScenes.getAt(this.transitionManager.getCurrentIndex());
+        var scene = this.validScenes.getAt(
+            this.transitionManager.getCurrentIndex());
         this.map.setZoom(scene.zoom);
         this.map.setCenter(scene.location);
         this.currentScene = scene;
-        this.current = scene.id;
         this.updateContent();
       }
     },
@@ -411,7 +412,7 @@ Fired when the storybord's google map is ready to be rendered.
      * @param {String} id The button's id.
      * @param {String} title The button's title.
      * @param {String} text The text shown inside the button.
-     * @param {google.map.ControlPosition} controlPosition Position on the map.
+     * @param {google.maps.ControlPosition} controlPosition Position on the map.
      * @param {Function} onClick The handler for a click event.
      */
     makeButton: function(id, title, text, controlPosition, onClick) {
@@ -435,7 +436,7 @@ Fired when the storybord's google map is ready to be rendered.
    * @returns {boolean} True if the scene has an invalid address and location.
    */
   function isInvalidScene(scene) {
-    return (scene.ignoreAddress && !isLatLng(scene.location));
+    return (scene.ignoreAddress && !scene.location);
   }
 
   /**
@@ -447,17 +448,7 @@ Fired when the storybord's google map is ready to be rendered.
    * @returns {boolean} True if the scene has a valid location.
    */
   function isValidScene(scene) {
-    return isLatLng(scene.location);
-  }
-
-  /**
-   * @method isLatLng
-   * @param {Object} location The location to be checked.
-   * @returns {boolean} If true, the location is an
-   * instance of google.maps.LatLng.
-   */
-  function isLatLng(location) {
-    return location instanceof google.maps.LatLng;
+    return scene.location instanceof google.maps.LatLng;
   }
 
 })();

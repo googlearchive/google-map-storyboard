@@ -5,15 +5,6 @@ var TransitionState = {
 }
 
 /**
- * @method isLatLng
- * @param {Object} location The location to be checked.
- * @returns {boolean} If true, the location is an instance of google.maps.LatLng
- */
-function isLatLng(location) {
-  return location instanceof google.maps.LatLng;
-}
-
-/**
  * MapTransitionManager
  *  - Is a wrapper for transitions on its Google Map.
  *  - The transitions have callbacks which are fired once the map is idle.
@@ -24,7 +15,7 @@ function isLatLng(location) {
  * @param {google.maps.Map} map The Google Map the transitions occur on.
  */
 function MapTransitionManager(map) {
-  this.setMap(map);
+  this.map = map;
 }
 
 MapTransitionManager.prototype = {
@@ -48,19 +39,19 @@ MapTransitionManager.prototype = {
   _idleListener: null,
 
   /**
-   * @method setMap
+   * @method set map
    * @param map {google.maps.Map} The map on which the transitions occur. Null
    * if no map is given.
    */
-  setMap: function(map) {
+  set map(map) {
     this._map = (map instanceof google.maps.Map) ? map : null;
   },
 
   /**
-   * @method getMap
+   * @method get map
    * @returns {google.maps.Map} The map on which the transitions occur.
    */
-  getMap: function(map) {
+  get map() {
     return this._map;
   },
 
@@ -99,25 +90,27 @@ MapTransitionManager.prototype = {
    * @param {!Array.<!google.maps.LatLng>} locations LatLngs to fit the 
    * bounds to.
    * @param {boolean} panToLastLocation If true, pan to the last location given.
+   * @param {Function} callback (Optional) The callback to invoke on completion
+   * of the transition. If !panToLastLocation, it is fired on the completion
+   * of fitBounds, else it is invoked after panTo.
    */
   fitBounds: function(locations, panToLastLocation, callback) {
     if (!this._map) return;
     this.stopTransition();
+    var lastLocation = locations[locations.length - 1];
+    var hasDiffLocations = false;
     var bounds = new google.maps.LatLngBounds();
-    var lastLocation = null;
-    for (var i = locations.length - 1, location; location = locations[i]; --i) {
-      if (!isLatLng(location)) continue;
+    for (var i = 0, location; location = locations[i]; ++i) {
       bounds.extend(location);
-      if (panToLastLocation && !lastLocation) lastLocation = location;
+      if (!hasDiffLocations) hasDiffLocations = !location.equals(lastLocation);
     }
-    // Ensure the bounds have a valid span:
-    // i.e. At least two different locations were given.
-    var span = bounds.toSpan();
-    if (span.lat() || span.lng()) {
+    // Ensure the bounds have at least two unique locations.
+    if (hasDiffLocations) {
       this._map.fitBounds(bounds);
       if (!panToLastLocation) this._uponMapIdle(callback);
       else this._uponMapIdle(this.panTo.bind(this, lastLocation, callback));
-    } else if (lastLocation) {
+    } else {
+      // If only one unique location is given, pan to that location.
       this.panTo(lastLocation, callback);
     }
   },
@@ -129,13 +122,12 @@ MapTransitionManager.prototype = {
    *
    * @method panToScene
    * @param {google.maps.LatLng} location LatLng to pan to.
-   * @param {Function} onTransitionComplete The callback to invoke on completion
-   * of the transition.
+   * @param {Function} onTransitionComplete (Optional) The callback to invoke on
+   * the completion of the transition.
    */
   panTo: function(location, onTransitionComplete) {
     this.stopTransition();
-    if (isLatLng(location) && this._map &&
-        !this._map.getCenter().equals(location)) {
+    if (location && this._map && !this._map.getCenter().equals(location)) {
       this._map.panTo(location);
       this._uponMapIdle(onTransitionComplete);
     } else if (onTransitionComplete) {
@@ -176,24 +168,24 @@ function getPointOnLine(polyline, index) {
  * Line animation methods:
  *  - next: the line grows to the next location in its path.
  *  - prev: the line shrinks to the previous location in its path.
- *  - pause: pause the line animation.
+ *  - pause: pauses the line animation.
  *
  * Updating the current index of the path without the line animation:
  *  - setCurrentIndex: has the map transitions, but no line animation.
  *
  * Updating the path:
- *  - insertAt: insert a location into the path at the given index.
- *  - setAt: set the location of the path at the given index.
- *  - removeAt: remove the location from the path at the given index.
+ *  - insertAt: inserts a location into the path at the given index.
+ *  - setAt: sets the location of the path at the given index.
+ *  - removeAt: (NOTE: to be added) removes the location from the path at
+ *    the given index.
  *
  * @constructor
  * @param {google.maps.Map} map The map the animations and transitions occur on.
  */
 function LinearAnimationManager(map) {
+  this._mapTransitionManager = new MapTransitionManager(map);
   this._prevLine = this.makePolyline(0.6);
   this._nextLine = this.makePolyline(0.2);
-  this.mapTransitionManager = new MapTransitionManager(map);
-  this.setMap(map);
 }
 
 LinearAnimationManager.prototype = {
@@ -269,24 +261,34 @@ LinearAnimationManager.prototype = {
   _forward: true,
 
   /**
+   * The MapTransitionManager co-ordinated by this LinearAnimationManager.
+   * (So map animations and transitions are coordinated together.)
+   *
+   * @property _mapTransitionManager
+   * @type MapTransitionManager
+   * @default null
+   */
+  _mapTransitionManager: null,
+
+  /**
    * Sets the map on which the polyline and map transitions occur.
    *
    * @method setMap
    * @param {google.maps.Map} map The map on which the transitions occur.
    */
-  setMap: function(map) {
+  set map(map) {
     map = (map instanceof google.maps.Map) ? map : null;
     this._prevLine.setMap(map);
     this._nextLine.setMap(map);
-    this.mapTransitionManager.setMap(map);
+    this._mapTransitionManager.map = map;
   },
 
   /**
    * @method getMap
    * @returns {google.maps.Map} The map on which the transitions occur.
    */
-  getMap: function() {
-    return this.mapTransitionManager.getMap();
+  get map() {
+    return this._mapTransitionManager.map;
   },
 
   /**
@@ -296,21 +298,15 @@ LinearAnimationManager.prototype = {
    *
    * @method setCurrentIndex
    * @param {number} index The index of the location to set the path to.
-   * @param {Function} onTransitionComplete The callback when the transition is
-   * complete.
+   * @param {Function} onTransitionComplete (Optional) The callback to invoke on
+   * the completion of the transition.
    */
   setCurrentIndex: function(index, onTransitionComplete) {
-    var isAnimating = (this._state === TransitionState.ANIMATING);
     this.finishAnimation(false);
     var prevPath = this._prevLine.getPath().getArray();
     var nextPath = this._nextLine.getPath().getArray();
     var locations = [nextPath.pop()];
-    if (isAnimating) {
-      prevPath.pop();
-      locations.push(prevPath[prevPath.length - 1]);
-      locations.push(nextPath[nextPath.length - 1]);
-    }
-    totalPath = prevPath.concat(nextPath.reverse());
+    var totalPath = prevPath.concat(nextPath.reverse());
     index = index < totalPath.length ? index : (totalPath.length - 1);
     // Previous line path contains the points up to and including index
     this._prevLine.setPath(totalPath.slice(0, index + 1));
@@ -318,7 +314,7 @@ LinearAnimationManager.prototype = {
     this._nextLine.setPath(totalPath.slice(index).reverse());
 
     locations.push(totalPath[index]);
-    this.mapTransitionManager.fitBounds(locations, true, onTransitionComplete);
+    this._mapTransitionManager.fitBounds(locations, true, onTransitionComplete);
   },
 
   /**
@@ -331,7 +327,7 @@ LinearAnimationManager.prototype = {
   getCurrentIndex: function() {
     var index = this._prevLine.getPath().length - 1;
     if (this._state === TransitionState.IDLE || this._forward) return index;
-    return --index;
+    return index - 1;
   },
 
   /**
@@ -340,61 +336,42 @@ LinearAnimationManager.prototype = {
    * @param {google.maps.LatLng} location The location to insert.
    */
   insertAt: function(index, location) {
-    if (!isLatLng(location)) return;
+    if (!location) return;
     var currentIndex = this._prevLine.getPath().length - 1;
-    if (currentIndex < 0 && !this._nextLine.getPath().length) {
+    if (currentIndex < 0) {  // If it is the first point to be inserted.
       this._prevLine.getPath().insertAt(0, location);
-      return this._nextLine.getPath().insertAt(0, location);
-    }
-    if (index > currentIndex) {
+      this._nextLine.getPath().insertAt(0, location);
+    } else if (index > currentIndex) {
       index = this._nextLine.getPath().length + currentIndex - index;
-      if (index < 0) return null;
-      return this._nextLine.getPath().insertAt(index, location);      
+      if (index < 0) return;
+      this._nextLine.getPath().insertAt(index, location);
     } else {
-      return this._prevLine.getPath().insertAt(index, location);
+      this._prevLine.getPath().insertAt(index, location);
     }
+    this._panToAnimatingLineSegment();
   },
 
   /**
    * @method setAt
-   * @param {number} index The index at which to set the location.
+   * @param {number} index The positive index at which to set the location.
    * @param {!google.maps.LatLng} location The location to set.
    */
   setAt: function(index, location) {
-    if (!isLatLng(location)) return;
+    if (!location) return;
     var currentIndex = this._prevLine.getPath().length - 1;
-    if (index < currentIndex) {
-      return this._prevLine.getPath().setAt(index, location);
-    } else if (index === currentIndex) {
-      // TODO: This is on the previso that an animation is not in progress.
+    if (index === currentIndex && this._state === TransitionState.IDLE) {
       setLast(this._prevLine, location);
       setLast(this._nextLine, location);
-      this.mapTransitionManager.panTo(location);
+      this._mapTransitionManager.panTo(location);
+    } else if (index < currentIndex) {
+      this._prevLine.getPath().setAt(index, location);
     } else {
       index = this._nextLine.getPath().length - 1 + currentIndex - index;
-      if (index < 0) return null;
-      return this._nextLine.getPath().setAt(index, location);
+      if (this._state != TransitionState.IDLE) --index;
+      if (index < 0) return;
+      this._nextLine.getPath().setAt(index, location);
     }
-  },
-
-  /**
-   * @method removeAt
-   * @param {number} index The index at which to remove the location.
-   * @param {!google.maps.LatLng} location The location to remove.
-   */
-  removeAt: function(index) {
-    var currentIndex = this._prevLine.getPath().length - 1;
-    if (index < 0) index = 0;
-    if (index < currentIndex) {
-      return this._prevLine.getPath().removeAt(index);
-    } else if (index === currentIndex) {
-      // TODO: decide how this case is going to be handled, especially if
-      // during an animation or similar.
-    } else {
-      index = this._nextLine.getPath().length - 1 + currentIndex - index;
-      if (index < 0) index = 0;
-      return this._nextLine.getPath().removeAt(index);
-    }
+    this._panToAnimatingLineSegment();
   },
 
   /**
@@ -449,23 +426,27 @@ LinearAnimationManager.prototype = {
   },
 
   /**
+   * Animates the line to the next location.
+   *
    * @method next
-   * @param {Function} onTransitionComplete The callback when the line and
-   * map transition is complete.
+   * @param {Function} onTransitionComplete (Optional) The callback to invoke on
+   * the completion of the map transition and line animation.
    */
   next: function(onTransitionComplete) {
     if (!this.hasNext()) return;
-    this.startAnimation(true, onTransitionComplete);
+    this._startAnimation(true, onTransitionComplete);
   },
 
   /**
+   * Animates the line to the previous location.
+   *
    * @method prev
-   * @param {Function} onTransitionComplete The callback when the line and
-   * map transition is complete.
+   * @param {Function} onTransitionComplete (Optional) The callback to invoke on
+   * the completion of the map transition and line animation.
    */
   prev: function(onTransitionComplete) {
     if (!this.hasPrev()) return;
-    this.startAnimation(false, onTransitionComplete);
+    this._startAnimation(false, onTransitionComplete);
   },
 
   /**
@@ -477,23 +458,35 @@ LinearAnimationManager.prototype = {
     if (this._state === TransitionState.IDLE) return;
     this._state = TransitionState.PAUSED;
     this._cancelAnimation();
-    this.mapTransitionManager.stopTransition();
+    this._mapTransitionManager.stopTransition();
+  },
+
+  /**
+   * Pans to the animating line segment if the line is currently animating.
+   *
+   * @method _panToAnimatingLineSegment
+   */
+  _panToAnimatingLineSegment: function() {
+    if (this._state != TransitionState.ANIMATING) return;
+    this._mapTransitionManager.fitBounds([getPointOnLine(this._prevLine, - 2),
+        getPointOnLine(this._nextLine, - 2)], false);
   },
 
   /**
    * Starts a line animation moving to the next, or the previous.
    * If another line animation/transition is in progress, stop it.
    *
-   * @method startAnimation
-   * @param {number} from The index of the scene it is animating from.
-   * @param {number} to The index of the scene it is animating to.
+   * @method _startAnimation
+   * @param {boolean} forward If true, animates to the next location, otherwise
+   * animates to the previous location.
+   * @param {Function} onTransitionComplete (Optional) The callback to invoke on
+   * the completion of the map transition and line animation.
    */
-  startAnimation: function(forward, onTransitionComplete) {
-    this.mapTransitionManager.stopTransition();
-    if (this._state === TransitionState.ANIMATING && forward === this._forward) {
-      this.finishAnimation(false);
-    } else if (this._state != TransitionState.IDLE) {
-      this.pause();
+  _startAnimation: function(forward, onTransitionComplete) {
+    this._mapTransitionManager.stopTransition();
+    if (this._state === TransitionState.ANIMATING) {
+      if (forward === this._forward) this.finishAnimation(false);
+      else this.pause();
     }
     this._forward = forward;
     var resume = (this._state === TransitionState.PAUSED);
@@ -502,8 +495,7 @@ LinearAnimationManager.prototype = {
       line.getPath().push(getPointOnLine(line, - 1));
     }
     this._state = TransitionState.ANIMATING;
-    this.mapTransitionManager.fitBounds([getPointOnLine(this._prevLine, - 2), 
-        getPointOnLine(this._nextLine, - 2)], false);
+    this._panToAnimatingLineSegment();
     /* NOTE: requestAnimationFrame gives the DOMHighResTimeStamp as the
      * last parameter in the callback. (The 1st parameter in this case.)
      */
@@ -546,20 +538,20 @@ LinearAnimationManager.prototype = {
    * @returns {boolean} If false, there was no animation frame to cancel.
    */
   _cancelAnimation: function() {
-    if (typeof this._intervalId != 'number' || 
-        this._state === TransitionState.IDLE) return false;
+    if (this._state === TransitionState.IDLE) return false;
     window.cancelAnimationFrame(this._intervalId);
     this._intervalId = null;
     return true;
   },
 
   /**
-   * Completes the current line animation.
+   * Completes the current line animation, if there is one in progress.
    *
    * @method finishAnimation
    * @param {boolean} finishTransition If true, finishes default transition.
-   * @param {Function} onTransitionComplete The function to fire once the
-   * transition is complete.
+   * @param {Function} onTransitionComplete (Optional) The callback to invoke on
+   * the completion of the transition. If finishTransition is true, it is
+   * invoked on the completion of the pan, else once the animation is finished.
    */
   finishAnimation: function(finishTransition, onTransitionComplete) {
     if (!this._cancelAnimation()) return;
@@ -569,7 +561,7 @@ LinearAnimationManager.prototype = {
     var currentLoc = getPointOnLine(shortenLine, - 1);
     var line = (!this._forward && this._nextLine) || this._prevLine;
     setLast(line, currentLoc);
-    if (finishTransition) this.mapTransitionManager.panTo(currentLoc, 
+    if (finishTransition) this._mapTransitionManager.panTo(currentLoc,
         onTransitionComplete);
     else if (onTransitionComplete) onTransitionComplete();
   }
