@@ -34,15 +34,13 @@ suite('google-map-storyboard', function() {
   })
 
   test('mapReadyEvent', function() {
-    assert.isTrue(withoutIds.map instanceof google.maps.Map);
-    assert.equal(withoutIds.map.getZoom(), 7);
-    assert.equal(withoutIds.map.getCenter(), 
-        withoutIds.scenes[0].location);
-    assert.equal(
-        withoutIds.map.controls[google.maps.ControlPosition.LEFT_CENTER].length,
+    var map = withoutIds.map;
+    assert.isTrue(map instanceof google.maps.Map);
+    assert.equal(map.getZoom(), 7);
+    assert.equal(map.getCenter(), scenes[0].location);
+    assert.equal(map.controls[google.maps.ControlPosition.LEFT_CENTER].length,
         0);
-    assert.equal(
-        withoutIds.map.controls[google.maps.ControlPosition.RIGHT_CENTER].length,
+    assert.equal(map.controls[google.maps.ControlPosition.RIGHT_CENTER].length,
         1);
   });
 
