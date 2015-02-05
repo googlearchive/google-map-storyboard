@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+  <script src="../bower_components/webcomponentsjs/webcomponents.js"></script>
+  <script src="../bower_components/web-component-tester/browser.js"></script>
+  <link rel="import" href="../google-map-storyboard.html">
+</head>
+<body>
+
+    <google-map-storyboard id="withIds" fit current="second">
+      <google-map-scene id="first" address="Mountain View" zoom="7">ABC</google-map-scene>
+      <google-map-scene id="second" address="Sydney, Australia" zoom="5">123</google-map-scene>
+      <google-map-scene id="third" address="Zurich, Switzerland">...</google-map-scene>
+    </google-map-storyboard>
+
+<script>
+suite('google-map-storyboard', function() {
+  suiteSetup(function(done) {
+    withIds.addEventListener('google-map-storyboard-ready', function() {
+      done();
+    });
+  });
+
+  test('initialScene', function(done) {
+    assert.equal(withIds.index, 1);
+    assert.equal(withIds.current, 'second');
+    assert.equal(withIds.currentScene, second);
+    assert.equal(withIds.map.getCenter(), withIds.currentScene.location);
+    assert.isTrue(document.getElementById('first').location 
+        instanceof google.maps.LatLng);
+    assert.equal(withIds.infowindow.getContent(), second.innerHTML);
+    done();
+  });
+
+});
+suite('google-map-scene', function() {
+  test('sceneZoom', function() {
+    assert.equal(first.zoom, 7);
+    assert.equal(second.zoom, 5);
+    assert.equal(third.zoom, 10);
+  });
+  test('sceneLocations', function() {
+    assert.isTrue(first.location instanceof google.maps.LatLng);
+    assert.isTrue(second.location instanceof google.maps.LatLng);
+    assert.isTrue(third.location instanceof google.maps.LatLng);
+  });
+});
+</script>
+</body>
+</html>

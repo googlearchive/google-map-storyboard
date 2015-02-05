@@ -10,12 +10,6 @@
 </head>
 <body>
 
-    <google-map-storyboard id="withIds" fit current="second">
-      <google-map-scene id="first" address="Mountain View" zoom="7">ABC</google-map-scene>
-      <google-map-scene id="second" address="Sydney, Australia" zoom="5">123</google-map-scene>
-      <google-map-scene id="third" address="Zurich, Switzerland">...</google-map-scene>
-    </google-map-storyboard>
-
     <google-map-storyboard id="withoutIds" fit current="NonExistant">
       <google-map-scene address="Mountain View" zoom="7">ABC</google-map-scene>
       <google-map-scene address="Sydney, Australia" zoom="5"></google-map-scene>
@@ -25,67 +19,29 @@
 <script>
 
 suite('google-map-storyboard', function() {
-
-  test('alwaysPasses', function() {
-    assert.isTrue(true);
+  suiteSetup(function(done) {
+    withoutIds.addEventListener('google-map-storyboard-ready', function() {
+      done();
+    });
   });
 
   test('initialScene', function() {
-    flush(function() {
-      assert.equal(withoutIds.index, 0);
-      assert.isFalse(withoutIds.current);
-      assert.equal(withoutIds.currentScene, withoutIds.scenes[0]);
-      assert.equal(withoutIds.map.getCenter(), withoutIds.currentScene.location);
-
-      assert.equal(withIds.index, 1);
-      assert.equal(withIds.current, "second");
-      assert.equal(withIds.currentScene, second);
-      assert.equal(withIds.map.getCenter(), withIds.currentScene.location);
-      done();
-    });
-  });
+    assert.equal(withoutIds.index, 0);
+    assert.equal(withoutIds.current,'');
+    assert.equal(withoutIds.currentScene, withoutIds.scenes[0]);
+    assert.equal(withoutIds.map.getCenter(), 
+        withoutIds.currentScene.location);
+  })
 
   test('mapReadyEvent', function() {
-    withoutIds.addEventListener('google-map-storyboard-ready', function() {
-      assert.isTrue(withoutIds.map);
-      assert.equal(withoutIds.map.getZoom(), 7);
-      assert.equal(withoutIds.map.getCenter(), withoutIds.scenes[0].location);
-      assert.isTrue(withoutIds.prevButton);
-      assert.isFalse(withoutIds.nextButton);
-    });
-  });
-
-  test('initialPolyline', function() {
-    flush(function() {
-      assert.equal(withoutIds.prevLine.getPath().length, 1);
-      assert.equal(withoutIds.nextLine.getPath().length, 2);
-      assert.equal(withoutIds.totalPath.length, 3);
-
-      assert.equal(withIds.prevLine.getPath().length, 2);
-      assert.equal(withIds.nextLine.getPath().length, 2);
-      assert.equal(withIds.totalPath.length, 3);
-      done();
-    });
-  });
-
-});
-
-suite('google-map-scene', function() {
-
-  test('sceneZoom', function() {
-    assert.equal(first.zoom, 7);
-    assert.equal(second.zoom, 5);
-    assert.equal(third.zoom, 10);
-  });
-
-  test('sceneLocations', function() {
-    flush(function() {
-      assert.isTrue(first.location);
-      assert.isTrue(first.location instanceof google.maps.LatLng);
-      assert.isTrue(second.location);
-      assert.isTrue(third.location);
-      done();
-    });
+    var map = withoutIds.map;
+    assert.isTrue(map instanceof google.maps.Map);
+    assert.equal(map.getZoom(), 7);
+    assert.equal(map.getCenter(), scenes[0].location);
+    assert.equal(map.controls[google.maps.ControlPosition.LEFT_CENTER].length,
+        0);
+    assert.equal(map.controls[google.maps.ControlPosition.RIGHT_CENTER].length,
+        1);
   });
 
 });
