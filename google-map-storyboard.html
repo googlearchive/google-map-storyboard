@@ -44,31 +44,6 @@ Fired when the storybord's google map is ready to be rendered.
       left: 0;
     }
 
-    #sceneMedia * {
-      max-width: 100%;
-      max-height: 100%;
-    }
-
-    #sceneMedia {
-      display: inline-block;
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      max-width: 300px;
-      word-wrap: break-word;
-      background-color: #ffffff;
-      border: 1px solid black;
-    }
-    
-    #image {
-      display: inline-block;
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-    }
-
     button {
       opacity: 0.5;
       font-size: 1.5em;
@@ -187,7 +162,7 @@ Fired when the storybord's google map is ready to be rendered.
      * @type Number
      * @default 5000
      */
-    ANIMATION_TIME_MS: 5000,
+    ANIMATION_TIME_MS: 3000,
 
     mapApiLoaded: function() {
       this.initializeScenes();
@@ -251,8 +226,35 @@ Fired when the storybord's google map is ready to be rendered.
           onInteraction.bind(this));
       google.maps.event.addListener(this.map, 'center_changed',
           onInteraction.bind(this));
-      function onInteraction() {
+      function onInteraction(){
         this.infowindow.close();
+      }
+      google.maps.event.addListener(this.scenes[this.index].marker, 'click', changeContent.bind(this));
+      function changeContent() {
+        if (this.infowindow.getMap()) {
+          if (currentNode.nextSibling != null){
+            currentNode = currentNode.nextSibling;
+            if (currentNode instanceof HTMLImageElement) {
+              this.infowindow.setContent(currentNode.outerHTML);
+            }
+            else {
+              this.infowindow.setContent(currentNode.textContent);
+            }
+          } else {
+            currentNode = this.currentScene.firstChild;
+            if (currentNode instanceof HTMLImageElement) {
+              this.infowindow.setContent(currentNode.outerHTML);
+            }
+            else {
+              this.infowindow.setContent(currentNode.textContent);
+            }
+          } google.maps.event.trigger(this.infowindow, 'resize');
+        }
+        else {
+          if (currentNode) {
+	    this.infowindow.open(this.map, this.scenes[this.index].marker);
+          }
+        }
       }
     },
 
