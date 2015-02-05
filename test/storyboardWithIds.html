@@ -30,7 +30,6 @@ suite('google-map-storyboard', function() {
     assert.equal(withIds.map.getCenter(), withIds.currentScene.location);
     assert.isTrue(document.getElementById('first').location 
         instanceof google.maps.LatLng);
-    window.console.log(withIds);
     assert.equal(withIds.infowindow.getContent(), second.innerHTML);
     done();
   });
