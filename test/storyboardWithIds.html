@@ -17,6 +17,7 @@
 
 <script>
 suite('google-map-storyboard', function() {
+
   suiteSetup(function(done) {
     withIds.addEventListener('google-map-storyboard-ready', function() {
       done();
@@ -24,28 +25,32 @@ suite('google-map-storyboard', function() {
   });
 
   test('initialScene', function(done) {
-    assert.equal(withIds.index, 1);
     assert.equal(withIds.current, 'second');
     assert.equal(withIds.currentScene, second);
     assert.equal(withIds.map.getCenter(), withIds.currentScene.location);
-    assert.isTrue(document.getElementById('first').location 
-        instanceof google.maps.LatLng);
     assert.equal(withIds.infowindow.getContent(), second.innerHTML);
     done();
   });
 
 });
+
 suite('google-map-scene', function() {
+
   test('sceneZoom', function() {
     assert.equal(first.zoom, 7);
     assert.equal(second.zoom, 5);
     assert.equal(third.zoom, 10);
   });
+
   test('sceneLocations', function() {
-    assert.isTrue(first.location instanceof google.maps.LatLng);
-    assert.isTrue(second.location instanceof google.maps.LatLng);
-    assert.isTrue(third.location instanceof google.maps.LatLng);
+    function isInvalidScene(scene) {
+      return !scene.location && scene.ignoreAddress;
+    }
+    assert.isFalse(isInvalidScene(first));
+    assert.isFalse(isInvalidScene(second));
+    assert.isFalse(isInvalidScene(third));
   });
+
 });
 </script>
 </body>
