@@ -45,31 +45,6 @@ Fired when the storybord's google map is ready to be rendered.
       left: 0;
     }
 
-    #sceneMedia * {
-      max-width: 100%;
-      max-height: 100%;
-    }
-
-    #sceneMedia {
-      display: inline-block;
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      max-width: 300px;
-      word-wrap: break-word;
-      background-color: #ffffff;
-      border: 1px solid black;
-    }
-    
-    #image {
-      display: inline-block;
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-    }
-
     button {
       opacity: 0.5;
       font-size: 1.5em;
@@ -87,8 +62,6 @@ Fired when the storybord's google map is ready to be rendered.
   <google-maps-api apiKey="{{apiKey}}" version="3.exp" libraries="places,geometry" on-api-load="{{mapAPILoaded}}"></google-maps-api>
 
   <div id="map"></div>
-  <div id="sceneMedia"></div>
-  <div id="image"></div>
 
   <content id="scenes" select="google-map-scene" on-scene-changed="{{updateScene}}"></content>
 </template>
@@ -185,30 +158,41 @@ Fired when the storybord's google map is ready to be rendered.
             google.maps.ControlPosition.LEFT_CENTER, this.getPrev);
         this.makeButton("next", "Next", ">", 
             google.maps.ControlPosition.RIGHT_CENTER, this.getNext);
+        this.infowindow = new google.maps.InfoWindow;
         this.updateControls();
         this.transitionManager.map = this.map;
         this.showMarkersChanged();
+        this.activateScene();
         this.fire('google-map-storyboard-ready');
       }
     },
 
     updateContent: function() {
-      var media = this.$.sceneMedia;
-      var image = this.$.image
+      if (!this.map) return;
       var currentNode = this.currentScene.firstChild;
-      if (currentNode instanceof HTMLImageElement) {
-        image.innerHTML = currentNode.outerHTML;
-        media.style.display = 'none';
-        if (image.innerHTML) {
-          image.style.display = 'inline-block';
+      var contentString = '';
+      if (currentNode) {
+        contentString = currentNode instanceof HTMLImageElement ?
+          currentNode.outerHTML : 
+          currentNode.textContent;
+      }
+      this.infowindow.setContent(contentString);
+      if (this.currentScene.marker) {
+        if (currentNode) {
+          this.infowindow.open(this.map, this.currentScene.marker);
+        }
+      } else {
+        this.infowindow.setPosition(this.currentScene.location);
+        if (currentNode) {
+          this.infowindow.open(this.map);
         }
       }
-      else {
-        media.innerHTML = currentNode.textContent;
-        image.style.display = 'none';
-        if (media.innerHTML) {
-          media.style.display = 'inline-block';
-        }
+      google.maps.event.addListener(this.map, 'zoom_changed',
+          onInteraction.bind(this));
+      google.maps.event.addListener(this.map, 'center_changed',
+          onInteraction.bind(this));
+      function onInteraction() {
+        this.infowindow.close();
       }
     },
 
