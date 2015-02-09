@@ -169,48 +169,66 @@ Fired when the storybord's google map is ready to be rendered.
 
     updateContent: function() {
       if (!this.map) return;
-      var currentNode = this.currentScene.firstChild;
+      var currentNode = this.currentScene.firstElementChild;
       var contentString = '';
+      var contentNo = 1;
       if (currentNode) {
         contentString = currentNode instanceof HTMLImageElement ?
-          currentNode.outerHTML : 
+          currentNode.outerHTML: 
           currentNode.textContent;
       }
-      this.infowindow.setContent(contentString);
+      this.infowindow.setContent(contentString +
+          '<div style="text-align: center"><p>' +
+          contentNo + ' of ' +
+          this.currentScene.childElementCount + '</p></div>');
       if (this.currentScene.marker) {
         if (currentNode) {
-          this.infowindow.open(this.map, this.currentScene.marker);
+	  this.infowindow.open(this.map, this.currentScene.marker);
         }
       } else {
         this.infowindow.setPosition(this.currentScene.location);
-        if (currentNode) {
+	if (currentNode) {
           this.infowindow.open(this.map);
         }
       }
-      google.maps.event.addListener(this.scenes[this.index].marker, 'click', changeContent.bind(this));
+      google.maps.event.addListener(this.currentScene.marker, 'click', changeContent.bind(this));
       function changeContent() {
         if (this.infowindow.getMap()) {
-          if (currentNode.nextSibling != null){
-            currentNode = currentNode.nextSibling;
+          if (currentNode.nextElementSibling != null){
+            contentNo += 1;
+            currentNode = currentNode.nextElementSibling;
             if (currentNode instanceof HTMLImageElement) {
-              this.infowindow.setContent(currentNode.outerHTML);
+              this.infowindow.setContent(currentNode.outerHTML +
+                  '<div style="text-align: center"><p>' +
+                  contentNo + ' of ' +
+                  this.currentScene.childElementCount + '</p></div>');
             }
             else {
-              this.infowindow.setContent(currentNode.textContent);
+              this.infowindow.setContent(currentNode.textContent +
+                  '<div style="text-align: center"><p>' +
+                  contentNo + ' of ' +
+                  this.currentScene.childElementCount + '</p></div>');
             }
           } else {
-            currentNode = this.currentScene.firstChild;
+            currentNode = this.currentScene.firstElementChild;
+            contentNo = 1;
             if (currentNode instanceof HTMLImageElement) {
-              this.infowindow.setContent(currentNode.outerHTML);
+              this.infowindow.setContent(currentNode.outerHTML +
+                  '<div style="text-align: center"><p>' +
+                  contentNo + ' of ' +
+                  this.currentScene.childElementCount + '</p></div>');
             }
             else {
-              this.infowindow.setContent(currentNode.textContent);
+              this.infowindow.setContent(currentNode.textContent +
+                  '<div style="text-align: center"><p>' +
+                  contentNo + ' of ' +
+                  this.currentScene.childElementCount + '</p></div>');
             }
           } google.maps.event.trigger(this.infowindow, 'resize');
         }
         else {
           if (currentNode) {
-	    this.infowindow.open(this.map, this.scenes[this.index].marker);
+	    this.infowindow.open(this.map, this.currentScene.marker);
           }
         }
       }
