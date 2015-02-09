@@ -187,12 +187,32 @@ Fired when the storybord's google map is ready to be rendered.
           this.infowindow.open(this.map);
         }
       }
-      google.maps.event.addListener(this.map, 'zoom_changed',
-          onInteraction.bind(this));
-      google.maps.event.addListener(this.map, 'center_changed',
-          onInteraction.bind(this));
-      function onInteraction() {
-        this.infowindow.close();
+      google.maps.event.addListener(this.scenes[this.index].marker, 'click', changeContent.bind(this));
+      function changeContent() {
+        if (this.infowindow.getMap()) {
+          if (currentNode.nextSibling != null){
+            currentNode = currentNode.nextSibling;
+            if (currentNode instanceof HTMLImageElement) {
+              this.infowindow.setContent(currentNode.outerHTML);
+            }
+            else {
+              this.infowindow.setContent(currentNode.textContent);
+            }
+          } else {
+            currentNode = this.currentScene.firstChild;
+            if (currentNode instanceof HTMLImageElement) {
+              this.infowindow.setContent(currentNode.outerHTML);
+            }
+            else {
+              this.infowindow.setContent(currentNode.textContent);
+            }
+          } google.maps.event.trigger(this.infowindow, 'resize');
+        }
+        else {
+          if (currentNode) {
+	    this.infowindow.open(this.map, this.scenes[this.index].marker);
+          }
+        }
       }
     },
 
@@ -339,6 +359,7 @@ Fired when the storybord's google map is ready to be rendered.
 
     getPrev: function() {
       if (this.transitionManager.hasPrev()) {
+        this.infowindow.close();
         this.transitionManager.prev(this.activateScene.bind(this));
         this.updateControls();
       }
@@ -346,6 +367,7 @@ Fired when the storybord's google map is ready to be rendered.
 
     getNext: function() {
       if (this.transitionManager.hasNext()) {
+        this.infowindow.close();
         this.transitionManager.next(this.activateScene.bind(this));
         this.updateControls();
       }
