@@ -345,8 +345,10 @@ Fired when the storybord's google map is ready to be rendered.
       }
       if (this.validScenes && this.transitionManager) {
         var sceneIndex = this.validScenes.indexOf(scene);
-        if (this.map) this.transitionManager.setCurrentIndex(sceneIndex, 
-            this.activateScene.bind(this));
+        if (this.map) {
+          this.transitionManager.setCurrentIndex(sceneIndex,
+                    this.activateScene.bind(this));
+        }
       }
       this.currentScene = scene;
     },

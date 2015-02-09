@@ -72,9 +72,9 @@ MapTransitionManager.prototype = {
   /**
    * Removes the idle listener.
    *
-   * @method stopTransition
+   * @method removeIdleBehavior
    */
-  stopTransition: function() {
+  removeIdleBehavior: function() {
     this._uponMapIdle(null);
   },
 
@@ -96,7 +96,7 @@ MapTransitionManager.prototype = {
    */
   fitBounds: function(locations, panToLastLocation, callback) {
     if (!this._map) return;
-    this.stopTransition();
+    this.removeIdleBehavior();
     var lastLocation = locations[locations.length - 1];
     var hasDiffLocations = false;
     var bounds = new google.maps.LatLngBounds();
@@ -126,7 +126,7 @@ MapTransitionManager.prototype = {
    * the completion of the transition.
    */
   panTo: function(location, onTransitionComplete) {
-    this.stopTransition();
+    this.removeIdleBehavior();
     if (location && this._map && !this._map.getCenter().equals(location)) {
       this._map.panTo(location);
       this._uponMapIdle(onTransitionComplete);
@@ -152,12 +152,16 @@ function setLast(polyline, location) {
 /**
  * @method getPointOnLine
  * @param {!google.maps.Polyline} polyline The polyline to get the point from.
- * @param {number} index The index of the point to retrieve (can be negative).
+ * @param {number} index The index of the point (single wrap around).
+ * NOTE: If index < last negative path index, it returns the first point.
+ *       If index > last path index, it returns the last point.
+ *       If there are no points in the path, it returns undefined.
  */
 function getPointOnLine(polyline, index) {
   var path = polyline.getPath();
   var length = path.length;
-  return path.getAt(((index % length) + length) % length);
+  index = index < 0 ? Math.max(index + length, 0) : Math.min(index, length - 1);
+  return path.getAt(index);
 }
 
 /**
@@ -307,10 +311,11 @@ LinearAnimationManager.prototype = {
     var nextPath = this._nextLine.getPath().getArray();
     var locations = [nextPath.pop()];
     var totalPath = prevPath.concat(nextPath.reverse());
-    index = index < totalPath.length ? index : (totalPath.length - 1);
+    index = Math.min(index, totalPath.length - 1);
     // Previous line path contains the points up to and including index
     this._prevLine.setPath(totalPath.slice(0, index + 1));
-    // Next line path contains the points from the end to index (inclusive)
+    // Next line path contains the points from the end to the index (inclusive)
+    // The path is reversed with the first point being the end of the total path
     this._nextLine.setPath(totalPath.slice(index).reverse());
 
     locations.push(totalPath[index]);
@@ -331,8 +336,12 @@ LinearAnimationManager.prototype = {
   },
 
   /**
+   * Inserts the location at the given index.
+   *
    * @method insertAt
    * @param {number} index The index at which to insert the location.
+   * Note: If the index < 0, it inserts at the beginning of the path.
+   * If the index > last index, it inserts the point at the end of the path.
    * @param {google.maps.LatLng} location The location to insert.
    */
   insertAt: function(index, location) {
@@ -343,7 +352,7 @@ LinearAnimationManager.prototype = {
       this._nextLine.getPath().insertAt(0, location);
     } else if (index > currentIndex) {
       index = this._nextLine.getPath().length + currentIndex - index;
-      if (index < 0) return;
+      if (this._state != TransitionState.IDLE) --index;
       this._nextLine.getPath().insertAt(index, location);
     } else {
       this._prevLine.getPath().insertAt(index, location);
@@ -352,6 +361,9 @@ LinearAnimationManager.prototype = {
   },
 
   /**
+   * Sets the location at the given index.
+   * Note: if the index is out of range [0, last index], it does nothing.
+   *
    * @method setAt
    * @param {number} index The positive index at which to set the location.
    * @param {!google.maps.LatLng} location The location to set.
@@ -368,7 +380,6 @@ LinearAnimationManager.prototype = {
     } else {
       index = this._nextLine.getPath().length - 1 + currentIndex - index;
       if (this._state != TransitionState.IDLE) --index;
-      if (index < 0) return;
       this._nextLine.getPath().setAt(index, location);
     }
     this._panToAnimatingLineSegment();
@@ -458,7 +469,7 @@ LinearAnimationManager.prototype = {
     if (this._state === TransitionState.IDLE) return;
     this._state = TransitionState.PAUSED;
     this._cancelAnimation();
-    this._mapTransitionManager.stopTransition();
+    this._mapTransitionManager.removeIdleBehavior();
   },
 
   /**
@@ -483,7 +494,7 @@ LinearAnimationManager.prototype = {
    * the completion of the map transition and line animation.
    */
   _startAnimation: function(forward, onTransitionComplete) {
-    this._mapTransitionManager.stopTransition();
+    this._mapTransitionManager.removeIdleBehavior();
     if (this._state === TransitionState.ANIMATING) {
       if (forward === this._forward) this.finishAnimation(false);
       else this.pause();
@@ -491,7 +502,7 @@ LinearAnimationManager.prototype = {
     this._forward = forward;
     var resume = (this._state === TransitionState.PAUSED);
     if (!resume) {
-      var line = (!this._forward && this._nextLine) || this._prevLine;
+      var line = this._forward ? this._prevLine : this._nextLine;
       line.getPath().push(getPointOnLine(line, - 1));
     }
     this._state = TransitionState.ANIMATING;
@@ -559,10 +570,12 @@ LinearAnimationManager.prototype = {
     var shortenLine = (this._forward && this._nextLine) || this._prevLine;
     shortenLine.getPath().pop();
     var currentLoc = getPointOnLine(shortenLine, - 1);
-    var line = (!this._forward && this._nextLine) || this._prevLine;
+    var line = this._forward ? this._prevLine : this._nextLine;
     setLast(line, currentLoc);
-    if (finishTransition) this._mapTransitionManager.panTo(currentLoc,
-        onTransitionComplete);
-    else if (onTransitionComplete) onTransitionComplete();
+    if (finishTransition) {
+      this._mapTransitionManager.panTo(currentLoc, onTransitionComplete);
+    } else if (onTransitionComplete) {
+      onTransitionComplete();
+    }
   }
 }
