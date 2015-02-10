@@ -193,7 +193,6 @@ Fired when the storybord's google map is ready to be rendered.
       }
       google.maps.event.addListener(this.currentScene.marker, 'click', changeContent.bind(this));
       function changeContent() {
-          window.console.log(this.infowindow.getMap());
         if (!this.infowindow.getMap()) {
           if (currentNode) {
 	    this.infowindow.open(this.map, this.currentScene.marker);
