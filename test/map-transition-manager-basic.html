@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+  <script src="../bower_components/webcomponentsjs/webcomponents.js"></script>
+  <script src="../bower_components/web-component-tester/browser.js"></script>
+  <script src="https://maps.googleapis.com/maps/api/js?v=3.exp&libraries=geometry"></script>
+  <script src="../TransitionManager.js"></script>
+  <style>
+    #mapCanvas {
+      height: 100%;
+    }
+  </style>
+</head>
+<body>
+  <div id="mapCanvas"></div>
+<script>
+// The precision used when checking if two locations are close to eachother.
+var PRECISION = 0.0001;
+
+suite('map-transition-manager', function() {
+  var map, mapOptions, manager, locations;
+
+  // Returns true if the location given is close to the map center.
+  function isCloseToMapCenter(location) {
+    var mapCenter = map.getCenter();
+    return (Math.abs(location.lat() - mapCenter.lat()) < PRECISION) &&
+        (Math.abs(location.lng() - mapCenter.lng()) < PRECISION);
+  }
+
+  suiteSetup(function() {
+    locations = [
+      new google.maps.LatLng(-34, 52),
+      new google.maps.LatLng(-35, 53),
+      new google.maps.LatLng(-30, 57),
+      new google.maps.LatLng(-37, 51),
+      new google.maps.LatLng(-50, 48)
+    ];
+    mapOptions = {
+      zoom: 10,
+      center: new google.maps.LatLng(-32, 128)
+    };
+    map = new google.maps.Map(mapCanvas, mapOptions);
+  });
+
+  setup(function() {
+    manager = new MapTransitionManager(map);
+  });
+
+  teardown(function() {
+    map.setOptions(mapOptions);
+    manager.map = null;
+  });
+
+  suiteTeardown(function() {
+    if (mapCanvas.children.length) mapCanvas.removeChild(mapCanvas.children[0]);
+  });
+
+  test('map-transition-constructor', function() {
+    assert.equal(manager.map, map);
+    assert.equal(manager._map, map);
+    manager = new MapTransitionManager(null);
+    assert.equal(manager.map, null);
+    assert.equal(manager._map, null);
+  });
+
+  test('fitBounds-single-location', function(done) {
+    manager.fitBounds([locations[0]], false, function() {
+      assert.isTrue(isCloseToMapCenter(locations[0]),
+          'Map pans to the single location given.');
+      assert.equal(map.getZoom(), mapOptions.zoom, 
+          'The zoom should not change: if only one location, it should pan.');
+      done();
+    }.bind(this));
+  });
+
+  test('fitBounds-single-location-repeated', function(done) {
+    manager.fitBounds([locations[0], locations[0]], false, function() {
+      assert.isTrue(isCloseToMapCenter(locations[0]),
+          'Map pans to the single location given.');
+      assert.equal(manager.map.getZoom(), mapOptions.zoom, 
+          'The zoom should not change: if only one location, it should pan.');
+      done();
+    }.bind(this));
+  });
+
+  test('fitBounds-multiple-locations', function(done) {
+    manager.fitBounds(locations, false, function() {
+      var mapBounds = manager.map.getBounds();
+      for (var i = 0, location; location = locations[i]; ++i) {
+        assert.isTrue(mapBounds.contains(location));
+      }
+      assert.isFalse(isCloseToMapCenter(locations[4]),
+          'Map does not pan to the last location given.');
+      done();
+    }.bind(this));
+  });
+
+  test('fitBounds-panToLast-callbackAfterPan', function(done) {
+    manager.fitBounds(locations, true, function() {
+      assert.isTrue(isCloseToMapCenter(locations[4]),
+          'Map pans to the single location given.');
+      done();
+    }.bind(this));
+  });
+
+  test('fitBounds-panToLast-doesFitBoundsFirst', function(done) {
+    new google.maps.event.addListenerOnce(map, 'idle', function() {
+      var mapBounds = manager.map.getBounds();
+      for (var i = 0, location; location = locations[i]; ++i) {
+        assert.isTrue(mapBounds.contains(location));
+      }
+      assert.isFalse(isCloseToMapCenter(locations[4]),
+          'Map fits the bounds before it pans to the last location.');
+      done();
+    }.bind(this));
+    manager.fitBounds(locations, true, null);
+  });
+
+});
+
+</script>
+</body>

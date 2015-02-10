@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+  <script src="../bower_components/webcomponentsjs/webcomponents.js"></script>
+  <script src="../bower_components/web-component-tester/browser.js"></script>
+  <script src="https://maps.googleapis.com/maps/api/js?v=3.exp&libraries=geometry"></script>
+  <script src="../TransitionManager.js"></script>
+  <style>
+    #mapCanvas {
+      height: 100%;
+    }
+  </style>
+</head>
+<body>
+  <div id="mapCanvas"></div>
+<script>
+// The precision used when checking if two locations are close to eachother.
+var PRECISION = 0.0001;
+
+// Get the polyline path - given that there are no animations in progress.
+function getTotalPath(animationManager) {
+  var prevPath = animationManager._prevLine.getPath().getArray();
+  var nextPath = animationManager._nextLine.getPath().getArray();
+  if (animationManager._state != TransitionState.IDLE) {
+    return prevPath.slice(0, -1).concat(nextPath.slice(0,-1).reverse());
+  }
+  return prevPath.concat(nextPath.slice(0,-1).reverse());
+}
+
+// Constructs the path so that teh path is the same as locations (in order)
+// and the current is at index 0 - i.e. locations[0]
+function constructPath(animationManager, path) {
+  for (var i = 0, location; location = path[i]; ++i) {
+    animationManager.insertAt(i, location);
+  }
+}
+
+// Iterates through all the locations in the expected path and asserts that
+// they are the same as those in the actual path.
+function assertPathsEqual(actualPath, expectedPath, msg) {
+  for (var i = 0, location; location = expectedPath[i]; ++i) {
+    assert.equal(actualPath[i], location, msg);
+  }
+}
+
+// Gets the last point on the given polyline.
+function getLast(polyline) {
+  var path = polyline.getPath();
+  return path.getAt(path.length - 1);
+}
+
+// Asserts that the end of both next line and prev line
+// is the expected location.
+function assertCurrentLocation(animationManager, expectedLocation, msg) {
+  assert.equal(getLast(animationManager._nextLine), expectedLocation, msg);
+  assert.equal(getLast(animationManager._prevLine), expectedLocation, msg);
+}
+
+suite('linear-animation-manager-static', function() {
+  var manager, locations;
+
+  suiteSetup(function() {
+    // Locations array to construct the path with. Length must be 5 for tests.
+    locations = [
+      new google.maps.LatLng(-35, 57),
+      new google.maps.LatLng(-35, 55),
+      new google.maps.LatLng(-40, 55),
+      new google.maps.LatLng(-35, 58),
+      new google.maps.LatLng(-30, 58)
+    ];
+  });
+
+  setup(function() {
+    manager = new LinearAnimationManager(null);
+  });
+
+  test('initial-conditions', function() {
+    assert.equal(manager.getCurrentIndex(), -1, 'Index -1 with no path.');
+    assert.equal(manager._state, TransitionState.IDLE);
+    assert.equal(manager._ANIMATION_TIME_MS, 3000);
+    assert.equal(manager._intervalId, 0);
+    assert.equal(manager._offset, 0);
+    assert.isTrue(manager._mapTransitionManager instanceof 
+        MapTransitionManager);
+    assert.isTrue(manager._prevLine instanceof google.maps.Polyline);
+    assert.equal(manager._prevLine.getPath().length, 0);
+    assert.isTrue(manager._nextLine instanceof google.maps.Polyline);
+    assert.equal(manager._nextLine.getPath().length, 0);
+  });
+
+  test('insert-single-point', function() {
+    manager.insertAt(0, locations[0]);
+    assertCurrentLocation(manager, locations[0],
+        'The first location should be inserted on both polylines');
+    assert.equal(manager._nextLine.getPath().length, 1);
+    assert.equal(manager._prevLine.getPath().length, 1);
+  });
+
+  test('insert-simple', function() {
+    constructPath(manager, locations);
+    var totalPath = getTotalPath(manager);
+    assert.equal(totalPath.length, locations.length);
+    assertPathsEqual(totalPath, locations, 'Simple insertion in the path.');
+  });
+
+  test('insert-random', function() {
+    manager.insertAt(2, locations[2]);
+    // the path should be [loc[2] (current)]
+    assert.equal(getTotalPath(manager).length, 1);
+
+    manager.insertAt(-2, locations[0]);
+    // The path should be [loc[0], loc[2] (current)]
+    assert.equal(manager._prevLine.getPath().getAt(0), locations[0],
+        'Insertion at negative index inserts at the beginning');
+    assertCurrentLocation(manager, locations[2],
+        'The current location is preserved.');
+
+    manager.insertAt(5, locations[4]);
+    // The path should be [loc[0], loc[2] (current), loc[4]]
+    assertCurrentLocation(manager, locations[2],
+        'The current location is preserved.');
+    assert.equal(manager._nextLine.getPath().getAt(0), locations[4],
+        'Insertion at index > total path length inserts at the end.');
+
+    manager.insertAt(1, locations[1]);
+    // The path should be [loc[0], loc[1], loc[2] (current), loc[4]]
+    assertPathsEqual(manager._prevLine.getPath().getArray(),
+        locations.slice(0, 3),
+        'Insertion into the middle of the previous line.');
+
+    manager.insertAt(3, locations[3]);
+    // The path should now be reconstructed to be the same as locations.
+    assert.equal(manager._nextLine.getPath().getAt(1), locations[3],
+        'Insertion into the middle of the next line.');
+    assertPathsEqual(getTotalPath(manager), locations);
+  });
+
+  test('set-out-of-bounds', function() {
+    for (var i = -1; i < 2; ++i) {
+      manager.setAt(i, locations[1]);
+      assert.equal(getTotalPath(manager).length, 0,
+          'Set at should not perform an insert for a polyline.');  
+    }
+
+    constructPath(manager, locations);
+    var location = new google.maps.LatLng(0, 0);
+
+    manager.setAt(-1, location);
+    assertPathsEqual(getTotalPath(manager), locations,
+        'Negative index in setAt affected the total path.');
+
+    manager.setAt(locations.length, location);
+    assertPathsEqual(getTotalPath(manager), locations,
+        'Too large index in setAt affected the total path.');
+  });
+
+});
+
+// NOTE: Line animations are in progress straight after a call to next or prev.
+// Map transitions are in progress at the start and end of next, prev and
+// setCurrentIndex.
+suite('linear-animation-manager-with-map-transitions', function() {
+  var map, mapOptions, manager, locations;
+
+  // Returns true if the location given is close to the map center.
+  function isCloseToMapCenter(location) {
+    var mapCenter = map.getCenter();
+    return (Math.abs(location.lat() - mapCenter.lat()) < PRECISION) &&
+        (Math.abs(location.lng() - mapCenter.lng()) < PRECISION);
+  }
+
+  suiteSetup(function() {
+    // Locations array to construct the path with.
+    locations = [
+      new google.maps.LatLng(-35, 57),
+      new google.maps.LatLng(-35, 55),
+      new google.maps.LatLng(-40, 55),
+      new google.maps.LatLng(-35, 58),
+      new google.maps.LatLng(-30, 58)
+    ];
+    mapOptions = {
+      zoom: 10,
+      center: new google.maps.LatLng(32, 50)
+    };
+    map = new google.maps.Map(mapCanvas, mapOptions);
+  });
+
+  setup(function() {
+    manager = new LinearAnimationManager(map);
+    constructPath(manager, locations);
+  });
+
+  teardown(function() {
+    manager.map = null;
+    map.setOptions(mapOptions);
+  });
+
+  suiteTeardown(function() {
+    if (mapCanvas.children.length) mapCanvas.removeChild(mapCanvas.children[0]);
+  });
+
+  test('animation-manager-constructor-map', function() {
+    assert.equal(manager.map, map);
+    assert.equal(manager._prevLine.getMap(), map);
+    assert.equal(manager._nextLine.getMap(), map);
+
+    manager = new LinearAnimationManager(null);
+    assert.equal(manager.map, null);
+    assert.equal(manager._prevLine.getMap(), null);
+    assert.equal(manager._nextLine.getMap(), null);
+  });
+
+  test('set-during-animation', function(done) {
+    manager._ANIMATION_TIME_MS = 500;
+    manager.next(function() {
+      var path = getTotalPath(manager);
+      assert.equal(path.length, locations.length);
+      assertCurrentLocation(manager, locations[locations.length - 2],
+          'The end location is updated during the animation.');
+      done();
+    }.bind(this));
+
+    // Reverse the path.
+    for (var i = 0, location; location = locations[locations.length - 1 - i];
+        ++i) {
+      manager.setAt(i, location);
+    }
+    // Take a shallow copy of locations and reverse to check the total path.
+    assertPathsEqual(getTotalPath(manager), locations.slice().reverse(),
+        'Reverse the path during an animation.');
+  });
+
+  test('insert-during-animation', function() {
+    manager.next();
+    for (var i = 0; i < 3; ++i) {
+      var location = new google.maps.LatLng(i, i);
+      manager.insertAt(2*i, location);
+      var totalPath = getTotalPath(manager);
+      assert.equal(totalPath[2*i], location);
+      if (i === 1) {
+        assert.isTrue(map.getBounds().contains(location),
+            'The map fits the bounds to the updated animated line segment.');
+      }
+    }
+  });
+
+  test('set-current-index-panning', function(done) {
+    // Ensure that setCurrentIndex results in a pan to that scene and that the
+    // callback function is called.
+    manager.setCurrentIndex(0, function() {
+      var mapCenter = manager.map.getCenter();
+      var precision = 0.0001;
+      assert.isTrue(isCloseToMapCenter(locations[0]), 
+          'The map pans to the current location.');
+      done();
+    }.bind(this));
+  });
+
+});
+</script>
+</body>
