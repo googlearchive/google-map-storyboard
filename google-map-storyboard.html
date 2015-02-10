@@ -195,11 +195,11 @@ Fired when the storybord's google map is ready to be rendered.
       function changeContent() {
         if (!this.infowindow.getMap()) {
           if (currentNode) {
-	    this.infowindow.open(this.map, this.currentScene.marker);
+            this.infowindow.open(this.map, this.currentScene.marker);
           }
           return;
         }
-        if (currentNode.nextElementSibling != null){
+        if (currentNode.nextElementSibling != null) {
           contentNo += 1;
           currentNode = currentNode.nextElementSibling;
         } else {
