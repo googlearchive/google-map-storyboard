@@ -49,7 +49,6 @@ Fired when the storybord's google map is ready to be rendered.
       opacity: 0.5;
       font-size: 1.5em;
       outline: none;
-      border-radius: 50%;
       background-color: #fff;
     }
 
@@ -154,12 +153,14 @@ Fired when the storybord's google map is ready to be rendered.
           disableDefaultUI: this.disableDefaultUI
         };
         this.map = new google.maps.Map(this.$.map, mapOptions);
-        this.makeButton("prev", "Previous", "<", 
-            google.maps.ControlPosition.LEFT_CENTER, this.getPrev);
-        this.makeButton("next", "Next", ">", 
-            google.maps.ControlPosition.RIGHT_CENTER, this.getNext);
+        this.makeButton("prev", "Previous", "<",
+            google.maps.ControlPosition.BOTTOM_CENTER, this.getPrev);
+        this.makeButton("pause", "Pause", "||",
+            google.maps.ControlPosition.BOTTOM_CENTER,
+            this.transitionManager.pause.bind(this.transitionManager));
+        this.makeButton("next", "Next", ">",
+            google.maps.ControlPosition.BOTTOM_CENTER, this.getNext);
         this.infowindow = new google.maps.InfoWindow;
-        this.updateControls();
         this.transitionManager.map = this.map;
         this.showMarkersChanged();
         this.activateScene();
@@ -278,7 +279,6 @@ Fired when the storybord's google map is ready to be rendered.
         this.initializeMap();
         return;
       }
-      this.updateControls();
     },
 
     geocodeScene: function(scene) {
@@ -365,7 +365,6 @@ Fired when the storybord's google map is ready to be rendered.
       if (this.transitionManager.hasPrev()) {
         this.infowindow.close();
         this.transitionManager.prev(this.activateScene.bind(this));
-        this.updateControls();
       }
     },
 
@@ -373,31 +372,6 @@ Fired when the storybord's google map is ready to be rendered.
       if (this.transitionManager.hasNext()) {
         this.infowindow.close();
         this.transitionManager.next(this.activateScene.bind(this));
-        this.updateControls();
-      }
-    },
-
-    /**
-     * Updates the next and previous controls on the map.
-     *
-     * @method updateControls
-     */
-    updateControls: function() {
-      if (!this.map) return;
-      var control = this.map.controls[google.maps.ControlPosition.LEFT_CENTER];
-      if (!this.transitionManager.hasPrev()) {
-        this.prevButton = this.prevButton || control.removeAt(0);
-      } else if (this.prevButton) {
-        control.insertAt(0, this.prevButton);
-        this.prevButton = null;
-      }
-
-      control = this.map.controls[google.maps.ControlPosition.RIGHT_CENTER];
-      if (!this.transitionManager.hasNext()) {
-        this.nextButton = this.nextButton || control.removeAt(0);
-      } else if (this.nextButton) {
-        control.insertAt(0, this.nextButton);
-        this.nextButton = null;
       }
     },
 
@@ -435,7 +409,7 @@ Fired when the storybord's google map is ready to be rendered.
       var content = document.createTextNode(text);
       button.appendChild(content);
       google.maps.event.addDomListener(button, 'click', onClick.bind(this));
-      this.map.controls[controlPosition].insertAt(0, button);
+      this.map.controls[controlPosition].push(button);
     }
 
   });
