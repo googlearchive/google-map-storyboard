@@ -71,24 +71,25 @@ suite('linear-animation-manager-static', function() {
       new google.maps.LatLng(-35, 58),
       new google.maps.LatLng(-30, 58)
     ];
+    manager = new LinearAnimationManager(null);
   });
 
-  setup(function() {
-    manager = new LinearAnimationManager(null);
+  teardown(function() {
+    manager.clear();
   });
 
   test('initial-conditions', function() {
     assert.equal(manager.getCurrentIndex(), -1, 'Index -1 with no path.');
-    assert.equal(manager._state, TransitionState.IDLE);
+    assert.isTrue(manager.isIdle());
     assert.equal(manager._ANIMATION_TIME_MS, 3000);
     assert.equal(manager._intervalId, 0);
     assert.equal(manager._offset, 0);
     assert.isTrue(manager._mapTransitionManager instanceof 
         MapTransitionManager);
     assert.isTrue(manager._prevLine instanceof google.maps.Polyline);
-    assert.equal(manager._prevLine.getPath().length, 0);
     assert.isTrue(manager._nextLine instanceof google.maps.Polyline);
-    assert.equal(manager._nextLine.getPath().length, 0);
+    assert.equal(manager.length, 0);
+    assert.isTrue(manager.isEmpty());
   });
 
   test('insert-single-point', function() {
@@ -157,6 +158,25 @@ suite('linear-animation-manager-static', function() {
         'Too large index in setAt affected the total path.');
   });
 
+  test('path-length', function() {
+    for (var i = 0, location; location = locations[i]; ++i) {
+      assert.equal(manager.length, i);
+      manager.insertAt(i, location);
+    }
+    manager.next();
+    assert.equal(manager.length, locations.length);
+  });
+
+  test('isEmpty-and-clear', function() {
+    assert.isTrue(manager.isEmpty());
+    constructPath(manager, locations);
+    assert.isFalse(manager.isEmpty());
+
+    manager.clear();
+    assert.isTrue(manager.isEmpty());
+    assert.equal(manager.length, 0);
+  });
+
 });
 
 // NOTE: Line animations are in progress straight after a call to next or prev.
@@ -186,15 +206,16 @@ suite('linear-animation-manager-with-map-transitions', function() {
       center: new google.maps.LatLng(32, 50)
     };
     map = new google.maps.Map(mapCanvas, mapOptions);
+    manager = new LinearAnimationManager(map);
+    manager._ANIMATION_TIME_MS = 1000;
   });
 
   setup(function() {
-    manager = new LinearAnimationManager(map);
     constructPath(manager, locations);
   });
 
   teardown(function() {
-    manager.map = null;
+    manager.clear();
     map.setOptions(mapOptions);
   });
 
@@ -207,14 +228,42 @@ suite('linear-animation-manager-with-map-transitions', function() {
     assert.equal(manager._prevLine.getMap(), map);
     assert.equal(manager._nextLine.getMap(), map);
 
-    manager = new LinearAnimationManager(null);
-    assert.equal(manager.map, null);
-    assert.equal(manager._prevLine.getMap(), null);
-    assert.equal(manager._nextLine.getMap(), null);
+    managerWithoutMap = new LinearAnimationManager(null);
+    assert.equal(managerWithoutMap.map, null);
+    assert.equal(managerWithoutMap._prevLine.getMap(), null);
+    assert.equal(managerWithoutMap._nextLine.getMap(), null);
+  });
+
+  test('length-isIdle-headingOfAnimation-next', function(done) {
+    assert.equal(manager.length, locations.length);
+    assert.isTrue(manager.isIdle());
+    assert.equal(manager.getHeadingOfAnimation(), 0);
+    manager.next(function() {
+      assert.isTrue(manager.isIdle());
+      assert.equal(manager.length, locations.length);
+      done();
+    });
+    assert.equal(manager.length, locations.length);
+    assert.isFalse(manager.isIdle());
+    assert.equal(manager.getHeadingOfAnimation(), 1);
+  });
+
+  test('length-isIdle-headingOfAnimation-prev', function(done) {
+    assert.isTrue(manager.isIdle());
+    // Make sure that there is a previous.
+    manager.setCurrentIndex(1);
+    assert.isTrue(manager.isIdle());
+    manager.prev(function() {
+      assert.isTrue(manager.isIdle());
+      assert.equal(manager.length, locations.length);
+      done();
+    });
+    assert.equal(manager.length, locations.length);
+    assert.isFalse(manager.isIdle());
+    assert.equal(manager.getHeadingOfAnimation(), -1);
   });
 
   test('set-during-animation', function(done) {
-    manager._ANIMATION_TIME_MS = 500;
     manager.next(function() {
       var path = getTotalPath(manager);
       assert.equal(path.length, locations.length);
@@ -240,6 +289,7 @@ suite('linear-animation-manager-with-map-transitions', function() {
       manager.insertAt(2*i, location);
       var totalPath = getTotalPath(manager);
       assert.equal(totalPath[2*i], location);
+      assert.isFalse(manager.isIdle(), 'Should be animating during insert.');
       if (i === 1) {
         assert.isTrue(map.getBounds().contains(location),
             'The map fits the bounds to the updated animated line segment.');
