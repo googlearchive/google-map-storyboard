@@ -331,8 +331,70 @@ LinearAnimationManager.prototype = {
    */
   getCurrentIndex: function() {
     var index = this._prevLine.getPath().length - 1;
-    if (this._state === TransitionState.IDLE || this._forward) return index;
+    if (this.isIdle() || this._forward) return index;
     return index - 1;
+  },
+
+  /**
+   * Gets the length of the total path.
+   *
+   * @method get length
+   * @returns {number} The length of the total path.
+   */
+  get length() {
+    var length = this._prevLine.getPath().length +
+        this._nextLine.getPath().length - 1;
+    if (length < 0) return 0;
+    return this.isIdle() ? length : (length - 1);
+  },
+
+  /**
+   * Gets the heading of the line animation.
+   * Heading is:
+   *  -1 : Heading towards the previous location.
+   *   0 : If the manager is idle, i.e. there is no animation.
+   *   1 : Heading towards the next location.
+   *
+   * @method getHeadingOfAnimation
+   * @returns {number} The heading of the animation.
+   */
+  getHeadingOfAnimation: function() {
+    if (this.isIdle()) return 0;
+    return this._forward ? 1 : -1;
+  },
+
+  /**
+   * Checks if the manager is idle.
+   * It is idle if there are no line animations currently in progress or paused.
+   *
+   * @method isIdle
+   * @returns {boolean} True if the transition manager is idle.
+   */
+  isIdle: function() {
+    return (this._state === TransitionState.IDLE);
+  },
+
+  /**
+   * Clears the path and stops any animations in progress.
+   *
+   * @method clear
+   */
+  clear: function() {
+    this._cancelAnimation();
+    this._prevLine.getPath().clear();
+    this._nextLine.getPath().clear();
+    this._mapTransitionManager.removeIdleBehavior();
+    this._state = TransitionState.IDLE;
+  },
+
+  /**
+   * Checks if the path is empty.
+   *
+   * @method isEmpty
+   * @returns {boolean} True if the path is empty.
+   */
+  isEmpty: function() {
+    return (this.length < 1);
   },
 
   /**
@@ -352,7 +414,7 @@ LinearAnimationManager.prototype = {
       this._nextLine.getPath().insertAt(0, location);
     } else if (index > currentIndex) {
       index = this._nextLine.getPath().length + currentIndex - index;
-      if (this._state != TransitionState.IDLE) --index;
+      if (!this.isIdle()) --index;
       this._nextLine.getPath().insertAt(index, location);
     } else {
       this._prevLine.getPath().insertAt(index, location);
@@ -371,7 +433,7 @@ LinearAnimationManager.prototype = {
   setAt: function(index, location) {
     if (!location) return;
     var currentIndex = this._prevLine.getPath().length - 1;
-    if (index === currentIndex && this._state === TransitionState.IDLE) {
+    if (index === currentIndex && this.isIdle()) {
       setLast(this._prevLine, location);
       setLast(this._nextLine, location);
       this._mapTransitionManager.panTo(location);
@@ -379,7 +441,7 @@ LinearAnimationManager.prototype = {
       this._prevLine.getPath().setAt(index, location);
     } else {
       index = this._nextLine.getPath().length - 1 + currentIndex - index;
-      if (this._state != TransitionState.IDLE) --index;
+      if (!this.isIdle()) --index;
       this._nextLine.getPath().setAt(index, location);
     }
     this._panToAnimatingLineSegment();
@@ -466,7 +528,7 @@ LinearAnimationManager.prototype = {
    * @method pause
    */
   pause: function() {
-    if (this._state === TransitionState.IDLE) return;
+    if (this.isIdle()) return;
     this._state = TransitionState.PAUSED;
     this._cancelAnimation();
     this._mapTransitionManager.removeIdleBehavior();
@@ -546,13 +608,11 @@ LinearAnimationManager.prototype = {
    * NOTE: It does not update the manager's state, nor touch the polyline.
    *
    * @method _cancelAnimation
-   * @returns {boolean} If false, there was no animation frame to cancel.
    */
   _cancelAnimation: function() {
-    if (this._state === TransitionState.IDLE) return false;
+    if (this.isIdle()) return;
     window.cancelAnimationFrame(this._intervalId);
     this._intervalId = null;
-    return true;
   },
 
   /**
@@ -565,7 +625,8 @@ LinearAnimationManager.prototype = {
    * invoked on the completion of the pan, else once the animation is finished.
    */
   finishAnimation: function(finishTransition, onTransitionComplete) {
-    if (!this._cancelAnimation()) return;
+    if (this.isIdle()) return;
+    this._cancelAnimation();
     this._state = TransitionState.IDLE;
     var shortenLine = (this._forward && this._nextLine) || this._prevLine;
     shortenLine.getPath().pop();
