@@ -28,7 +28,6 @@ suite('google-map-storyboard', function() {
     assert.equal(withIds.current, 'second');
     assert.equal(withIds.currentScene, second);
     assert.equal(withIds.map.getCenter(), withIds.currentScene.location);
-    window.console.log(withIds.infowindow.getContent());
     assert.equal(withIds.infowindow.getContent(), second.textContent+
           '<div style="text-align: center"><p>' +
           '1' + ' of ' +
