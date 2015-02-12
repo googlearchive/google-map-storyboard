@@ -62,7 +62,7 @@ Fired when the storybord's google map is ready to be rendered.
 
   <div id="map"></div>
 
-  <content id="scenes" select="google-map-scene" on-scene-changed="{{updateScene}}"></content>
+  <content id="scenes" select="google-map-scene" on-scene-changed="{{onSceneChanged}}"></content>
 </template>
 
 
@@ -234,15 +234,18 @@ Fired when the storybord's google map is ready to be rendered.
       this.validScenes.clear();
       this.currentScene = this.currentScene || allScenes[0];
       for (var i = 0, scene; scene = allScenes[i]; ++i) {
-        scene.fireSceneChanged();
+        this.updateScene(scene);
       }
     },
 
-    updateScene: function(details) {
+    onSceneChanged: function(details) {
       // Return if the maps API hasn't loaded yet.
       if (!this.validScenes) return;
       var scene = details.srcElement;
+      this.updateScene(scene);
+    },
 
+    updateScene: function(scene) {
       // If there is a new address to geocode, geocode it.
       if (!scene.ignoreAddress) this.geocodeScene(scene);
       // If this is the current scene, and it is invalid, find the replacement.
@@ -316,7 +319,7 @@ Fired when the storybord's google map is ready to be rendered.
         var scene = allScenes[(i + index) % allScenes.length];
         if (!isInvalidScene(scene)) {
           this.currentScene = scene;
-          if(scene.location) scene.fireSceneChanged();
+          if (scene.location) this.updateScene(scene);
           return;
         }
       }
