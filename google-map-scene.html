@@ -80,13 +80,8 @@ Fired when the scene's location has been changed.
      */
     ignoreAddress: true,
 
-    attached: function() {
-      this.fireSceneChanged();
-    },
-
     detached: function() {
       if (this.marker) this.marker.setMap(null);
-      this.fireSceneChanged();
     },
 
     getStoryboard: function() {
