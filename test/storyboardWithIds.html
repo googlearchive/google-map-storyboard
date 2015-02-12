@@ -10,9 +10,9 @@
 <body>
 
     <google-map-storyboard id="withIds" fit current="second">
-      <google-map-scene id="first" address="Mountain View" zoom="7">ABC</google-map-scene>
-      <google-map-scene id="second" address="Sydney, Australia" zoom="5">123</google-map-scene>
-      <google-map-scene id="third" address="Zurich, Switzerland">...</google-map-scene>
+      <google-map-scene id="first" address="Mountain View" zoom="7"><div>ABC</div></google-map-scene>
+      <google-map-scene id="second" address="Sydney, Australia" zoom="5"><div>123</div></google-map-scene>
+      <google-map-scene id="third" address="Zurich, Switzerland"><div>...</div></google-map-scene>
     </google-map-storyboard>
 
 <script>
@@ -28,7 +28,11 @@ suite('google-map-storyboard', function() {
     assert.equal(withIds.current, 'second');
     assert.equal(withIds.currentScene, second);
     assert.equal(withIds.map.getCenter(), withIds.currentScene.location);
-    assert.equal(withIds.infowindow.getContent(), second.innerHTML);
+    window.console.log(withIds.infowindow.getContent());
+    assert.equal(withIds.infowindow.getContent(), second.textContent+
+          '<div style="text-align: center"><p>' +
+          '1' + ' of ' +
+          withIds.currentScene.childElementCount + '</p></div>');
     done();
   });
 
