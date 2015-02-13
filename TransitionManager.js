@@ -307,11 +307,11 @@ LinearAnimationManager.prototype = {
    */
   setCurrentIndex: function(index, onTransitionComplete) {
     this.finishAnimation(false);
-    var prevPath = this._prevLine.getPath().getArray();
-    var nextPath = this._nextLine.getPath().getArray();
+    var prevPath = this._prevLine.getPath().getArray().slice();
+    var nextPath = this._nextLine.getPath().getArray().slice();
     var locations = [nextPath.pop()];
     var totalPath = prevPath.concat(nextPath.reverse());
-    index = Math.min(index, totalPath.length - 1);
+    index = index < 0 ? 0 : Math.min(index, totalPath.length - 1);
     // Previous line path contains the points up to and including index
     this._prevLine.setPath(totalPath.slice(0, index + 1));
     // Next line path contains the points from the end to the index (inclusive)
@@ -443,6 +443,42 @@ LinearAnimationManager.prototype = {
       index = this._nextLine.getPath().length - 1 + currentIndex - index;
       if (!this.isIdle()) --index;
       this._nextLine.getPath().setAt(index, location);
+    }
+    this._panToAnimatingLineSegment();
+  },
+
+  /**
+   * Removes the location at the given index.
+   * Note: Throws errors if:
+   *   - the manager is idle and the current location is removed.
+   *   - if it is the last (or first) location and the manager is animating
+   *     from/to this location.
+   *
+   * @method removeAt
+   * @param {number} index The index at which to remove the location.
+   * Note: If the index < 0, it removes at the beginning of the path.
+   * If the index > last index, it does nothing.
+   */
+  removeAt: function(index) {
+    var totalLength = this.length;
+    if (index < 0) index = 0;
+    var currentIndex = this._prevLine.getPath().length - 1;
+    if (this.isIdle() && index === currentIndex) {
+      if (totalLength > 1) {
+        throw new Error('Cannot remove the current location');
+      }
+      // If it is the last remaining scene, remove it.
+      this.clear();
+    } else if (!this.isIdle() && ((index < 1 && index === currentIndex - 1) ||
+        (index === currentIndex && index === totalLength - 1))) {
+      throw new Error('Cannot remove an endpoint which is used in the ' +
+          'current animation.');
+    } else if (index > currentIndex) {
+      index = totalLength - index - 1;
+      if (!this.isIdle()) --index;
+      this._nextLine.getPath().removeAt(index);
+    } else {
+      this._prevLine.getPath().removeAt(index);
     }
     this._panToAnimatingLineSegment();
   },
