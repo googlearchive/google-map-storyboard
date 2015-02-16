@@ -40,9 +40,9 @@ suite('google-map-storyboard', function() {
     // Ensure that there are 3 buttons at the bottom: prev, pause, next.
     var controls = map.controls[google.maps.ControlPosition.BOTTOM_CENTER];
     assert.equal(controls.length, 3);
-    var expectedControlsIds = ['prev', 'pause', 'next'];
+    var expectedControlsIds = ['prev', 'pauseAndPlay', 'next'];
     controls.forEach(function(control, index) {
-      assert.equal(control.id, controlsIds[index],
+      assert.equal(control.id, expectedControlsIds[index],
           'The order of the controls at the bottom of the map.');
     });
   });

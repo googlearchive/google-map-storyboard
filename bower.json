@@ -1,7 +1,8 @@
 {
   "name":"google-map-storyboard",
   "dependencies":{
-    "google-apis": "GoogleWebComponents/google-apis#~0.4.2"
+    "google-apis": "GoogleWebComponents/google-apis#~0.4.2",
+    "core-icon-button": "Polymer/core-icon-button#~0.5.4"
   },
   "devDependencies": {
     "web-component-tester": "Polymer/web-component-tester#^1.1.2"

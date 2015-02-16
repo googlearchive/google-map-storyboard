@@ -375,6 +375,17 @@ LinearAnimationManager.prototype = {
   },
 
   /**
+   * Checks if the manager is animating.
+   * It is true if the line is animating.  False if it is idle or paused.
+   *
+   * @method isAnimating
+   * @returns {boolean} True if the line is currently animating.
+   */
+  isAnimating: function() {
+    return (this._state === TransitionState.ANIMATING);
+  },
+
+  /**
    * Clears the path and stops any animations in progress.
    *
    * @method clear
