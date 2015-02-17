@@ -1,3 +1,17 @@
+/*
+ * Copyright 2015 Google Inc. All rights reserved.
+ *
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this
+ * file except in compliance with the License. You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under
+ * the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
+ * ANY KIND, either express or implied. See the License for the specific language governing
+ * permissions and limitations under the License.
+ */
 var TransitionState = {
   ANIMATING: 'ANIMATING',
   IDLE: 'IDLE',
@@ -372,6 +386,17 @@ LinearAnimationManager.prototype = {
    */
   isIdle: function() {
     return (this._state === TransitionState.IDLE);
+  },
+
+  /**
+   * Checks if the manager is animating.
+   * It is true if the line is animating.  False if it is idle or paused.
+   *
+   * @method isAnimating
+   * @returns {boolean} True if the line is currently animating.
+   */
+  isAnimating: function() {
+    return (this._state === TransitionState.ANIMATING);
   },
 
   /**

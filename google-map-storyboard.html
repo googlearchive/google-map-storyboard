@@ -1,4 +1,17 @@
 <!--
+Copyright 2015 Google Inc. All rights reserved.
+ 
+Licensed under the Apache License, Version 2.0 (the "License"); you may not use this
+file except in compliance with the License. You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+ 
+Unless required by applicable law or agreed to in writing, software distributed under
+the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
+ANY KIND, either express or implied. See the License for the specific language governing
+permissions and limitations under the License.
+-->
+<!--
 The 'google-map-storyboard' renders a Google Map with 'google-map-scene' elements.
 
 <b>Example</b> Add scenes to the map and traverse them linearly:
@@ -24,6 +37,8 @@ Fired when the storybord's google map is ready to be rendered.
 -->
 <link rel="import" href="bower_components/polymer/polymer.html">
 <link rel="import" href="bower_components/google-apis/google-apis.html">
+<link rel="import" href="bower_components/core-icons/av-icons.html">
+<link rel="import" href="bower_components/core-icon-button/core-icon-button.html">
 <link rel="import" href="google-map-scene.html">
 <script src="TransitionManager.js"></script>
 
@@ -43,17 +58,6 @@ Fired when the storybord's google map is ready to be rendered.
       right: 0;
       bottom: 0;
       left: 0;
-    }
-
-    button {
-      opacity: 0.5;
-      font-size: 1.5em;
-      outline: none;
-      background-color: #fff;
-    }
-
-    button:hover {
-      opacity: 1;
     }
     
   </style>
@@ -153,12 +157,11 @@ Fired when the storybord's google map is ready to be rendered.
           disableDefaultUI: this.disableDefaultUI
         };
         this.map = new google.maps.Map(this.$.map, mapOptions);
-        this.makeButton("prev", "Previous", "<",
+        this.makeButton("prev", "Previous", "arrow-back",
             google.maps.ControlPosition.BOTTOM_CENTER, this.getPrev);
-        this.makeButton("pause", "Pause", "||",
-            google.maps.ControlPosition.BOTTOM_CENTER,
-            this.transitionManager.pause.bind(this.transitionManager));
-        this.makeButton("next", "Next", ">",
+        this.makeButton("pauseAndPlay", "Pause/Play", "av:play-arrow",
+            google.maps.ControlPosition.BOTTOM_CENTER, this.pauseAndPlay);
+        this.makeButton("next", "Next", "arrow-forward",
             google.maps.ControlPosition.BOTTOM_CENTER, this.getNext);
         this.infowindow = new google.maps.InfoWindow;
         this.transitionManager.map = this.map;
@@ -431,6 +434,7 @@ Fired when the storybord's google map is ready to be rendered.
       if (this.transitionManager.hasPrev()) {
         this.infowindow.close();
         this.transitionManager.prev(this.activateScene.bind(this));
+        this.updateControls();
       }
     },
 
@@ -438,7 +442,32 @@ Fired when the storybord's google map is ready to be rendered.
       if (this.transitionManager.hasNext()) {
         this.infowindow.close();
         this.transitionManager.next(this.activateScene.bind(this));
+        this.updateControls();
       }
+    },
+
+
+    pauseAndPlay: function() {
+      if (this.transitionManager.isAnimating()) {
+        this.transitionManager.pause();
+      } else if (this.transitionManager.getHeadingOfAnimation() < 0) {
+        this.getPrev();
+      } else {
+        this.getNext();
+      }
+      this.updateControls();
+    },
+
+    /**
+     * Updates the pause and play control.
+     *
+     * @method updateControls
+     */
+    updateControls: function() {
+      var button =
+          this.map.controls[google.maps.ControlPosition.BOTTOM_CENTER].getAt(1);
+      var isAnimating = this.transitionManager.isAnimating();
+      button.icon = isAnimating ? "av:pause" : "av:play-arrow";
     },
 
     /**
@@ -454,12 +483,13 @@ Fired when the storybord's google map is ready to be rendered.
         this.map.setZoom(scene.zoom);
         this.map.setCenter(scene.location);
         this.currentScene = scene;
+        this.updateControls();
         this.updateContent();
       }
     },
 
     /**
-     * Makes a button which is added to the map controls.
+     * Makes a core-icon-button which is added to the map controls.
      *
      * @method makeButton
      * @param {String} id The button's id.
@@ -468,12 +498,11 @@ Fired when the storybord's google map is ready to be rendered.
      * @param {google.maps.ControlPosition} controlPosition Position on the map.
      * @param {Function} onClick The handler for a click event.
      */
-    makeButton: function(id, title, text, controlPosition, onClick) {
-      var button = document.createElement('button');
+    makeButton: function(id, title, icon, controlPosition, onClick) {
+      var button = document.createElement('core-icon-button');
       button.id = id;
       button.title = title;
-      var content = document.createTextNode(text);
-      button.appendChild(content);
+      button.icon = icon;
       google.maps.event.addDomListener(button, 'click', onClick.bind(this));
       this.map.controls[controlPosition].push(button);
     }

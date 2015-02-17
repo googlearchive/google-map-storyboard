@@ -37,10 +37,14 @@ suite('google-map-storyboard', function() {
     assert.isTrue(map instanceof google.maps.Map);
     assert.equal(map.getZoom(), 7);
     assert.equal(map.getCenter(), withoutIds.validScenes.getAt(0).location);
-    assert.equal(map.controls[google.maps.ControlPosition.LEFT_CENTER].length,
-        0);
-    assert.equal(map.controls[google.maps.ControlPosition.RIGHT_CENTER].length,
-        1);
+    // Ensure that there are 3 buttons at the bottom: prev, pause, next.
+    var controls = map.controls[google.maps.ControlPosition.BOTTOM_CENTER];
+    assert.equal(controls.length, 3);
+    var expectedControlsIds = ['prev', 'pauseAndPlay', 'next'];
+    controls.forEach(function(control, index) {
+      assert.equal(control.id, expectedControlsIds[index],
+          'The order of the controls at the bottom of the map.');
+    });
   });
 
 });
