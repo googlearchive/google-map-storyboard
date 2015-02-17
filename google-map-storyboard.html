@@ -255,7 +255,7 @@ Fired when the storybord's google map is ready to be rendered.
         } else if (!nextValid) {
           // There are no more remaining scenes in valid scenes
           // So add the next scene in allScenes to it.
-          insertNextScene();
+          insertNextScene.bind(this)();
         } else if (!nextScene || allScenes.indexOf(nextValid) < 0) {
           // There is no next scene in all scenes, or the scene has been removed
           // from the dom, so remove the scene from validScenes.
@@ -268,7 +268,7 @@ Fired when the storybord's google map is ready to be rendered.
             if (indexOfNextSceneInValid >= 0) {
               this.removeScene(indexOfNextSceneInValid);
             }
-            insertNextScene();
+            insertNextScene.bind(this)();
           } else {
             // Remove the scene prior to the current scene. This is so the
             // current scene is kept constant and transitions in progress.
@@ -288,21 +288,13 @@ Fired when the storybord's google map is ready to be rendered.
     },
 
     removeScene: function(index) {
-      var maxIndex = this.validScenes.length - 1;
-      var currentIndex = this.transitionManager.getCurrentIndex();
-      var from = currentIndex - this.transitionManager.getHeadingOfAnimation();
-
-      if ((index === currentIndex && this.transitionManager.isIdle()) ||
-          (index < 1 && index === Math.min(currentIndex, from)) ||
-          (index >= maxIndex && index === Math.max(currentIndex, from))) {
-        // Get the index it should transition to.
-        currentIndex = index < maxIndex ? index + 1 : Math.max(0, maxIndex - 1);
-        this.transitionManager.setCurrentIndex(currentIndex,
-            this.activateScene.bind(this));
-      }
+      index = Math.max(0, Math.min(index, this.validScenes.length - 1));
       this.transitionManager.removeAt(index);
       var scene = this.validScenes.removeAt(index);
       scene.setMap(null);
+      if (this.transitionManager.isIdle()) {
+        this.activateScene();
+      }
     },
 
     /*
@@ -390,7 +382,7 @@ Fired when the storybord's google map is ready to be rendered.
         var scene = allScenes[(i + index) % allScenes.length];
         if (!isInvalidScene(scene)) {
           this.currentScene = scene;
-          if(scene.location) this.updateScene(scene);
+          if (scene.location) this.updateScene(scene);
           return;
         }
       }
@@ -455,7 +447,7 @@ Fired when the storybord's google map is ready to be rendered.
      * @method activateScene
      */
     activateScene: function() {
-      if (this.map) {
+      if (this.map && this.transitionManager.isIdle()) {
         google.maps.event.clearInstanceListeners(this.currentScene.marker);
         var scene = this.validScenes.getAt(
             this.transitionManager.getCurrentIndex());

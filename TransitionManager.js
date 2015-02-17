@@ -311,7 +311,7 @@ LinearAnimationManager.prototype = {
     var nextPath = this._nextLine.getPath().getArray().slice();
     var locations = [nextPath.pop()];
     var totalPath = prevPath.concat(nextPath.reverse());
-    index = index < 0 ? 0 : Math.min(index, totalPath.length - 1);
+    index = Math.max(0, Math.min(index, totalPath.length - 1));
     // Previous line path contains the points up to and including index
     this._prevLine.setPath(totalPath.slice(0, index + 1));
     // Next line path contains the points from the end to the index (inclusive)
@@ -413,11 +413,16 @@ LinearAnimationManager.prototype = {
       this._prevLine.getPath().insertAt(0, location);
       this._nextLine.getPath().insertAt(0, location);
     } else if (index > currentIndex) {
-      index = this._nextLine.getPath().length + currentIndex - index;
-      if (!this.isIdle()) --index;
-      this._nextLine.getPath().insertAt(index, location);
+      var reverseIndex = this.length - index;
+      this._nextLine.getPath().insertAt(reverseIndex, location);
     } else {
       this._prevLine.getPath().insertAt(index, location);
+    }
+    if (this._state === TransitionState.PAUSED &&
+        (index === currentIndex - 1 || index === currentIndex)) {
+      // If the endpoints of the paused line segment have changed,
+      // update the waypoint of the polyline.
+      this._updateWaypoint();
     }
     this._panToAnimatingLineSegment();
   },
@@ -440,19 +445,26 @@ LinearAnimationManager.prototype = {
     } else if (index < currentIndex) {
       this._prevLine.getPath().setAt(index, location);
     } else {
-      index = this._nextLine.getPath().length - 1 + currentIndex - index;
-      if (!this.isIdle()) --index;
-      this._nextLine.getPath().setAt(index, location);
+      var reverseIndex = this.length - index - 1;
+      this._nextLine.getPath().setAt(reverseIndex, location);
+    }
+    if (this._state === TransitionState.PAUSED &&
+        (index === currentIndex - 1 || index === currentIndex)) {
+      // If the endpoints of the paused line segment have changed,
+      // update the waypoint of the polyline.
+      this._updateWaypoint();
     }
     this._panToAnimatingLineSegment();
   },
 
   /**
    * Removes the location at the given index.
-   * Note: Throws errors if:
+   * Will reverted to the most adjacent position if:
    *   - the manager is idle and the current location is removed.
    *   - if it is the last (or first) location and the manager is animating
    *     from/to this location.
+   * The 'most adjacent position' is at the previous index, if it has a previous
+   * location, otherwise it is the next location.
    *
    * @method removeAt
    * @param {number} index The index at which to remove the location.
@@ -461,24 +473,34 @@ LinearAnimationManager.prototype = {
    */
   removeAt: function(index) {
     var totalLength = this.length;
-    if (index < 0) index = 0;
-    var currentIndex = this._prevLine.getPath().length - 1;
-    if (this.isIdle() && index === currentIndex) {
-      if (totalLength > 1) {
-        throw new Error('Cannot remove the current location');
-      }
+    if (totalLength < 2) {
       // If it is the last remaining scene, remove it.
       this.clear();
-    } else if (!this.isIdle() && ((index < 1 && index === currentIndex - 1) ||
-        (index === currentIndex && index === totalLength - 1))) {
-      throw new Error('Cannot remove an endpoint which is used in the ' +
-          'current animation.');
-    } else if (index > currentIndex) {
-      index = totalLength - index - 1;
-      if (!this.isIdle()) --index;
-      this._nextLine.getPath().removeAt(index);
-    } else {
+      return;
+    }
+    if (index >= totalLength) return;
+    if (index < 0) index = 0;
+    var currentIndex = this._prevLine.getPath().length - 1;
+    if (this.isIdle() && index === currentIndex || (!this.isIdle() &&
+        ((index < 1 && index === currentIndex - 1) ||
+        (index === currentIndex && index === totalLength - 1)))) {
+      // Set current at the previous location (or the next - if no previous)
+      currentIndex = index < 1 ? 1 : (index - 1);
+      this.setCurrentIndex(currentIndex);
+    }
+
+    if (index < currentIndex) {
       this._prevLine.getPath().removeAt(index);
+    } else {
+      var reverseIndex = totalLength - index - 1;
+      this._nextLine.getPath().removeAt(reverseIndex);
+    }
+
+    if (this._state === TransitionState.PAUSED &&
+        (index === currentIndex - 1 || index === currentIndex)) {
+      // If the endpoints of the paused line segment have changed,
+      // update the waypoint of the polyline.
+      this._updateWaypoint();
     }
     this._panToAnimatingLineSegment();
   },
@@ -582,6 +604,21 @@ LinearAnimationManager.prototype = {
   },
 
   /**
+   * Updates the waypoint of the polyline if it is not idle.
+   * This is used during animations and if the polyline is paused
+   *
+   * @method _updateWaypoint
+   */
+  _updateWaypoint: function() {
+    if (this.isIdle()) return;
+    var wayPoint = new google.maps.geometry.spherical.interpolate(
+        getPointOnLine(this._prevLine, - 2), 
+        getPointOnLine(this._nextLine, - 2), this._offset);
+    setLast(this._nextLine, wayPoint);
+    setLast(this._prevLine, wayPoint);
+  },
+
+  /**
    * Starts a line animation moving to the next, or the previous.
    * If another line animation/transition is in progress, stop it.
    *
@@ -628,11 +665,7 @@ LinearAnimationManager.prototype = {
       }
       
       this._offset = this._forward ? fromOffset : (1 - fromOffset);
-      var wayPoint = new google.maps.geometry.spherical.interpolate(
-          getPointOnLine(this._prevLine, - 2), 
-          getPointOnLine(this._nextLine, - 2), this._offset);
-      setLast(this._nextLine, wayPoint);
-      setLast(this._prevLine, wayPoint);
+      this._updateWaypoint();
 
       this._intervalId = window.requestAnimationFrame(
           step.bind(this, startTime));
