@@ -234,11 +234,53 @@ Fired when the storybord's google map is ready to be rendered.
     initializeScenes: function() {
       var allScenes = Array.prototype.slice.call(
           this.$.scenes.getDistributedNodes());
-      this.validScenes.clear();
+      this.onMutation(this, this.initializeScenes);
       this.currentScene = this.currentScene || allScenes[0];
-      for (var i = 0, scene; scene = allScenes[i]; ++i) {
-        this.updateScene(scene);
+      var scenesToUpdate = new google.maps.MVCArray();
+      var nextValid = this.validScenes.getAt(0);
+      var validSceneIndex = 0;
+      var sceneIndex = 0;
+      var nextScene = allScenes[0];
+      function insertNextScene() {
+        if (isValidScene(nextScene)) {
+          this.insertScene(validSceneIndex, nextScene);
+          ++validSceneIndex;
+        }
+        scenesToUpdate.push(nextScene);
+        nextScene = allScenes[++sceneIndex];
       }
+      while (sceneIndex < allScenes.length || 
+          validSceneIndex < this.validScenes.length) {
+        if (nextValid === nextScene) {
+          // The scene is at the right location in the array.
+          nextValid = this.validScenes.getAt(++validSceneIndex);
+          nextScene = allScenes[++sceneIndex];
+        } else if (!nextValid) {
+          // There are no more remaining scenes in valid scenes
+          // So add the next scene in allScenes to it.
+          insertNextScene.call(this);
+        } else if (!nextScene || allScenes.indexOf(nextValid) < 0) {
+          // There is no next scene in all scenes, or the scene has been removed
+          // from the dom, so remove the scene from validScenes.
+          this.removeScene(validSceneIndex);
+          nextValid = this.validScenes.getAt(validSceneIndex);
+        } else {
+          var indexOfNextSceneInValid = this.validScenes.indexOf(nextScene);
+          if (indexOfNextSceneInValid != 
+              this.transitionManager.getCurrentIndex()) {
+            if (indexOfNextSceneInValid >= 0) {
+              this.removeScene(indexOfNextSceneInValid);
+            }
+            insertNextScene.call(this);
+          } else {
+            // Remove the scene prior to the current scene. This is so the
+            // current scene is kept constant and transitions in progress.
+            this.removeScene(validSceneIndex);
+            nextValid = this.validScenes.getAt(validSceneIndex);
+          }
+        }
+      }
+      scenesToUpdate.forEach(this.updateScene.bind(this));
     },
 
     onSceneChanged: function(details) {
@@ -248,6 +290,46 @@ Fired when the storybord's google map is ready to be rendered.
       this.updateScene(scene);
     },
 
+    removeScene: function(index) {
+      index = Math.max(0, Math.min(index, this.validScenes.length - 1));
+      // If an update is required due to scene removal, set the current index
+      // to the previous scene (or the next, if there is no previous).
+      // See LinearAnimationManager.removeAt for more details.
+      if (this.transitionManager.isUpdateRequiredIfRemoveAt(index)) {
+        var currentIndex = index < 1 ? 1 : (index - 1);
+        this.transitionManager.setCurrentIndex(currentIndex,
+            this.activateScene.bind(this));
+      }
+      this.transitionManager.removeAt(index);
+      var scene = this.validScenes.removeAt(index);
+      scene.setMap(null);
+    },
+
+    /**
+     * @method insertScene
+     * @param {number} index The index at which to insert the scene.
+     * If it is < 0, calculate the index.
+     * @param {google-map-scene} scene
+     */
+    insertScene: function(index, scene) {
+      if (index < 0) {
+        index = 0;
+        var allScenes = Array.prototype.slice.call(
+            this.$.scenes.getDistributedNodes());
+        var nextValid = this.validScenes.getAt(0);
+        for (var i = 0, nextScene; nextValid, nextScene = allScenes[i], 
+            nextScene != scene; ++i) {
+          if (nextValid === nextScene) {
+            nextValid = this.validScenes.getAt(++index);
+          }
+        }
+      }
+      this.validScenes.insertAt(index, scene);
+      this.transitionManager.insertAt(index, scene.location);
+      if (this.showMarkers) scene.setMap(this.map);
+      return index;
+    },
+
     updateScene: function(scene) {
       // If there is a new address to geocode, geocode it.
       if (!scene.ignoreAddress) this.geocodeScene(scene);
@@ -255,25 +337,11 @@ Fired when the storybord's google map is ready to be rendered.
       if (scene === this.currentScene && isInvalidScene(scene)) {
         this.updateCurrentScene();
       }
-      // TODO: Deal with scene removals.
       if (!isValidScene(scene)) return;
-
       var sceneIndex = this.validScenes.indexOf(scene);
       // If the scene is not already in validScenes, insert it.
       if (sceneIndex < 0) {
-        sceneIndex = 0;
-        var allScenes = Array.prototype.slice.call(
-            this.$.scenes.getDistributedNodes());
-        var nextValid = this.validScenes.getAt(0);
-        for (var i = 0, nextScene; nextValid, nextScene = allScenes[i], 
-            nextScene != scene; ++i) {
-          if (nextValid === nextScene) {
-            nextValid = this.validScenes.getAt(++sceneIndex);
-          }
-        }
-        this.validScenes.insertAt(sceneIndex, scene);
-        this.transitionManager.insertAt(sceneIndex, scene.location);
-        if (this.showMarkers && scene.marker) scene.marker.setMap(this.map);
+        sceneIndex = this.insertScene(-1, scene);
       } else {  // Otherwise the scene location has changed.
         this.transitionManager.setAt(sceneIndex, scene.location);
       }
@@ -337,7 +405,7 @@ Fired when the storybord's google map is ready to be rendered.
       if (!this.map) return;
       var map = (this.showMarkers && this.map) || null;
       this.validScenes.forEach(function(scene) {
-        if (scene.marker) scene.marker.setMap(map);
+        scene.setMap(map);
       });
     },
 
@@ -413,7 +481,7 @@ Fired when the storybord's google map is ready to be rendered.
      * @method activateScene
      */
     activateScene: function() {
-      if (this.map) {
+      if (this.map && this.transitionManager.isIdle()) {
         google.maps.event.clearInstanceListeners(this.currentScene.marker);
         var scene = this.validScenes.getAt(
             this.transitionManager.getCurrentIndex());
