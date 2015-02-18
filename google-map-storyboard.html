@@ -258,7 +258,7 @@ Fired when the storybord's google map is ready to be rendered.
         } else if (!nextValid) {
           // There are no more remaining scenes in valid scenes
           // So add the next scene in allScenes to it.
-          insertNextScene.bind(this)();
+          insertNextScene.call(this);
         } else if (!nextScene || allScenes.indexOf(nextValid) < 0) {
           // There is no next scene in all scenes, or the scene has been removed
           // from the dom, so remove the scene from validScenes.
@@ -271,7 +271,7 @@ Fired when the storybord's google map is ready to be rendered.
             if (indexOfNextSceneInValid >= 0) {
               this.removeScene(indexOfNextSceneInValid);
             }
-            insertNextScene.bind(this)();
+            insertNextScene.call(this);
           } else {
             // Remove the scene prior to the current scene. This is so the
             // current scene is kept constant and transitions in progress.
