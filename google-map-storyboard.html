@@ -292,19 +292,24 @@ Fired when the storybord's google map is ready to be rendered.
 
     removeScene: function(index) {
       index = Math.max(0, Math.min(index, this.validScenes.length - 1));
+      // If an update is required due to scene removal, set the current index
+      // to the previous scene (or the next, if there is no previous).
+      // See LinearAnimationManager.removeAt for more details.
+      if (this.transitionManager.isUpdateRequiredIfRemoveAt(index)) {
+        var currentIndex = index < 1 ? 1 : (index - 1);
+        this.transitionManager.setCurrentIndex(currentIndex,
+            this.activateScene.bind(this));
+      }
       this.transitionManager.removeAt(index);
       var scene = this.validScenes.removeAt(index);
       scene.setMap(null);
-      if (this.transitionManager.isIdle()) {
-        this.activateScene();
-      }
     },
 
-    /*
+    /**
      * @method insertScene
      * @param {number} index The index at which to insert the scene.
      * If it is < 0, calculate the index.
-     * @param {google-map-scene}
+     * @param {google-map-scene} scene
      */
     insertScene: function(index, scene) {
       if (index < 0) {

@@ -93,10 +93,10 @@ MapTransitionManager.prototype = {
   },
 
   /**
-   * Fits the bounds of the map to the given scene locations.
-   * The first stage of the default transition to a scene.
-   * The default transition to a scene:
-   *   - `fitBounds -> panTo -> callback/transitionComplete`
+   * Fits the bounds of the map to the given locations.
+   * The first stage of the default transition to a location.
+   * The default transition to a location:
+   *   - `fitBounds -> panTo the last location -> callback/transitionComplete`
    *   - each stage [`->`] occurs when the map is `idle`
    * Note: The last location is the last valid location in the locations array.
    *
@@ -130,7 +130,7 @@ MapTransitionManager.prototype = {
   },
 
   /**
-   * Pans to the upcoming scene (the scene that `index` points to).
+   * Pans to the given location.
    * If the location or map are invalid, the transition is seen as complete,
    * so the callback is invoked.
    *
@@ -194,8 +194,9 @@ function getPointOnLine(polyline, index) {
  * Updating the path:
  *  - insertAt: inserts a location into the path at the given index.
  *  - setAt: sets the location of the path at the given index.
- *  - removeAt: (NOTE: to be added) removes the location from the path at
- *    the given index.
+ *  - removeAt: removes the location from the path at the given index.
+ *    NOTE: Uses isUpdateRequiredIfRemoveAt in removeAt to check if it needs
+ *    to first update the current location before continuing with the removal.
  *
  * @constructor
  * @param {google.maps.Map} map The map the animations and transitions occur on.
@@ -338,7 +339,7 @@ LinearAnimationManager.prototype = {
 
   /**
    * Gets the index of the current location.
-   * NOTE: during animation/pause, this is the index of the upcoming scene.
+   * NOTE: during animation/pause, this is the index of the upcoming location.
    *
    * @method getCurrentIndex
    * @returns {number} The index of the current location.
@@ -400,6 +401,18 @@ LinearAnimationManager.prototype = {
   },
 
   /**
+   * Checks if the manager is paused (i.e. mid-animation, but not animating).
+   * It is true if the line is paused and mid-animation.
+   * False if it is idle or animating.
+   *
+   * @method isPaused
+   * @returns {boolean} True if the line is currently paused.
+   */
+  isPaused: function() {
+    return (this._state === TransitionState.PAUSED);
+  },
+
+  /**
    * Clears the path and stops any animations in progress.
    *
    * @method clear
@@ -443,13 +456,13 @@ LinearAnimationManager.prototype = {
     } else {
       this._prevLine.getPath().insertAt(index, location);
     }
-    if (this._state === TransitionState.PAUSED &&
+    // If the manager is not idle and the animating line segment's
+    // end points have changed, update the waypoint and the viewport.
+    if (!this.isIdle() &&
         (index === currentIndex - 1 || index === currentIndex)) {
-      // If the endpoints of the paused line segment have changed,
-      // update the waypoint of the polyline.
       this._updateWaypoint();
+      this._panToAnimatingLineSegment();
     }
-    this._panToAnimatingLineSegment();
   },
 
   /**
@@ -473,21 +486,54 @@ LinearAnimationManager.prototype = {
       var reverseIndex = this.length - index - 1;
       this._nextLine.getPath().setAt(reverseIndex, location);
     }
-    if (this._state === TransitionState.PAUSED &&
+    // If the manager is not idle and the animating line segment's
+    // end points have changed, update the waypoint and the viewport.
+    if (!this.isIdle() &&
         (index === currentIndex - 1 || index === currentIndex)) {
-      // If the endpoints of the paused line segment have changed,
-      // update the waypoint of the polyline.
       this._updateWaypoint();
+      this._panToAnimatingLineSegment();
     }
-    this._panToAnimatingLineSegment();
+  },
+
+  /**
+   * Checks if an update is required if a removal at the given index occurs.
+   * False if:
+   *   - it is an invalid index (i.e. index > last index in path)
+   *   - path length <= 1 (it is the last location, or the path is empty).
+   * True if:
+   *   - the manager is idle and it is the current index.
+   *   - if it is the last (or first) index and the manager is animating
+   *     from/to this index.
+   *
+   * @method isUpdateRequiredIfRemoveAt
+   * @param {number} index The index to check if an update is required if it is
+   * removed.  Note: If the index < 0, it checks at the beginning of the path.
+   * It is an invalid index if the index > last index, so no update is required.
+   * @returns {boolean} True if one of the above conditions is satisfied.
+   */
+  isUpdateRequiredIfRemoveAt: function(index) {
+    var totalLength = this.length;
+    if (index >= totalLength) return false;  // Invalid index.
+    if (totalLength <= 1) return false;
+    if (index < 0) index = 0;
+    var currentIndex = this._prevLine.getPath().length - 1;
+    if (this.isIdle()) {
+      // If the manager is idle and it is the current index.
+      return (index === currentIndex);
+    } else if (index < 1 && index === currentIndex - 1) {
+      // If it is the first index and the animation is from/to this point.
+      return true;
+    } else if (index === totalLength - 1 && index === currentIndex) {
+      // If it is the last index and the animation is from/to this point.
+      return true;
+    }
+    return false;  // Otherwise, an update is not required.
   },
 
   /**
    * Removes the location at the given index.
-   * Will reverted to the most adjacent position if:
-   *   - the manager is idle and the current location is removed.
-   *   - if it is the last (or first) location and the manager is animating
-   *     from/to this location.
+   * Will reverted to the most adjacent position if an update is required.
+   *   (See `isUpdateRequiredIfRemoveAt`)
    * The 'most adjacent position' is at the previous index, if it has a previous
    * location, otherwise it is the next location.
    *
@@ -498,36 +544,34 @@ LinearAnimationManager.prototype = {
    */
   removeAt: function(index) {
     var totalLength = this.length;
-    if (totalLength < 2) {
-      // If it is the last remaining scene, remove it.
+    if (index >= totalLength) return;
+    if (totalLength <= 1) {
+      // If it is the last remaining location, remove it.
       this.clear();
       return;
     }
-    if (index >= totalLength) return;
     if (index < 0) index = 0;
     var currentIndex = this._prevLine.getPath().length - 1;
-    if (this.isIdle() && index === currentIndex || (!this.isIdle() &&
-        ((index < 1 && index === currentIndex - 1) ||
-        (index === currentIndex && index === totalLength - 1)))) {
+    // Update the current index if one of the following conditions is satisfied.
+    if (this.isUpdateRequiredIfRemoveAt(index)) {
       // Set current at the previous location (or the next - if no previous)
       currentIndex = index < 1 ? 1 : (index - 1);
       this.setCurrentIndex(currentIndex);
     }
-
+    // Remove the location at the given index.
     if (index < currentIndex) {
       this._prevLine.getPath().removeAt(index);
     } else {
       var reverseIndex = totalLength - index - 1;
       this._nextLine.getPath().removeAt(reverseIndex);
     }
-
-    if (this._state === TransitionState.PAUSED &&
+    // If the manager is not idle and the animating line segment's
+    // end points have changed, update the waypoint and the viewport.
+    if (!this.isIdle() &&
         (index === currentIndex - 1 || index === currentIndex)) {
-      // If the endpoints of the paused line segment have changed,
-      // update the waypoint of the polyline.
       this._updateWaypoint();
+      this._panToAnimatingLineSegment();
     }
-    this._panToAnimatingLineSegment();
   },
 
   /**
@@ -563,7 +607,7 @@ LinearAnimationManager.prototype = {
    */
   hasNext: function() {
     var nextPathLength = this._nextLine.getPath().length;
-    if (this._state === TransitionState.ANIMATING && this._forward) {
+    if (this.isAnimating() && this._forward) {
       return nextPathLength > 2;
     }
     return nextPathLength > 1;
@@ -575,7 +619,7 @@ LinearAnimationManager.prototype = {
    */
   hasPrev: function() {
     var prevPathLength = this._prevLine.getPath().length;
-    if (this._state === TransitionState.ANIMATING && !this._forward) {
+    if (this.isAnimating() && !this._forward) {
       return prevPathLength > 2;
     }
     return prevPathLength > 1;
@@ -623,7 +667,7 @@ LinearAnimationManager.prototype = {
    * @method _panToAnimatingLineSegment
    */
   _panToAnimatingLineSegment: function() {
-    if (this._state != TransitionState.ANIMATING) return;
+    if (!this.isAnimating()) return;
     this._mapTransitionManager.fitBounds([getPointOnLine(this._prevLine, - 2),
         getPointOnLine(this._nextLine, - 2)], false);
   },
@@ -655,12 +699,12 @@ LinearAnimationManager.prototype = {
    */
   _startAnimation: function(forward, onTransitionComplete) {
     this._mapTransitionManager.removeIdleBehavior();
-    if (this._state === TransitionState.ANIMATING) {
+    if (this.isAnimating()) {
       if (forward === this._forward) this.finishAnimation(false);
       else this.pause();
     }
     this._forward = forward;
-    var resume = (this._state === TransitionState.PAUSED);
+    var resume = this.isPaused();
     if (!resume) {
       var line = this._forward ? this._prevLine : this._nextLine;
       line.getPath().push(getPointOnLine(line, - 1));
