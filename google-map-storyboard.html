@@ -288,7 +288,7 @@ Fired when the storybord's google map is ready to be rendered.
     },
 
     geocodeScene: function(scene) {
-      if (scene.ignoreAddress) return;
+      if (scene.ignoreAddress || !scene.address) return;
       var address = scene.address.valueOf();
       this.geocoder = this.geocoder || new google.maps.Geocoder();
       this.geocoder.geocode({address: address}, 
