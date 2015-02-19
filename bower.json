@@ -1,6 +1,26 @@
 {
   "name":"google-map-storyboard",
-  "dependencies":{
+  "main": [
+    "google-map-storyboard.html",
+    "google-map-scene.html",
+    "TransitionManager.js"
+  ],
+  "license": "Apache-2.0",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "keywords": [
+    "Polymer",
+    "web-components",
+    "web-component",
+    "storyboard",
+    "maps"
+  ],
+  "dependencies": {
     "google-apis": "GoogleWebComponents/google-apis#~0.4.2",
     "core-icon-button": "Polymer/core-icon-button#~0.5.4"
   },
