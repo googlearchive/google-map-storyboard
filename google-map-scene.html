@@ -13,15 +13,32 @@ permissions and limitations under the License.
 -->
 <!--
 The 'google-map-scene' is contained inside a 'google-map-storyboard'.
-Each scene is associated with a given location (an address).
-It uses Geocoding to accquire the locations of scenes and therefore uses Geocoding quota.
-The innerHTML of each scene is rendered at this location.
 
-<b>Example</b> - Put an image on a scene:
+Each scene is associated with a given location (an address).
+It uses Geocoding to accquire the locations of scenes and therefore uses
+Geocoding quota.
+The child nodes of each scene (ie. scene content) are rendered at this location.
+
+<b>Example</b> Simple scene - no zoom and no content given:
+
+    <google-map-scene address="Sydney, Australia">
+    </google-map-scene>
+
+<b>Example</b> Text content on a scene and a zoom level:
 
     <google-map-scene address="Sydney, Australia" zoom="5">
-      <img src="image.png">
+      <div>Welcome to Sydney!</div>
     </google-map-scene>
+
+<b>Example</b> Image content on a scene and multiple pieces of content:
+
+    <google-map-scene address="Sydney, Australia">
+      <div>Welcome to Sydney!</div>
+      <img src="image1.png">
+      <div>Sydney is the capital of New South Wales, Australia.</div>
+      <img src="image2.png">
+    </google-map-scene>
+
 
 @element google-map-scene
 @homepage https://github.com/googlemaps/google-map-storyboard
