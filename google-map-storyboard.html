@@ -62,12 +62,29 @@ Fired when the storybord's google map is ready to be rendered.
       bottom: 0;
       left: 0;
     }
-    
+
+    #controls {
+      display: inline-block;
+      position: absolute;
+      bottom: 0;
+
+      margin-bottom: 24px;
+      padding: 8px;
+      background: rgba(255, 255, 255, 0.75);
+      border-radius: 4px;
+
+      visibility: hidden;
+    }
+    #map #controls {
+      visibility: visible;  /* hidden until added to map */
+    }
+
   </style>
 
   <google-maps-api apiKey="{{apiKey}}" version="3.exp" libraries="places,geometry" on-api-load="{{mapAPILoaded}}"></google-maps-api>
 
   <div id="map"></div>
+  <div id="controls"></div>
 
   <content id="scenes" select="google-map-scene" on-scene-changed="{{onSceneChanged}}"></content>
 </template>
@@ -153,25 +170,34 @@ Fired when the storybord's google map is ready to be rendered.
     transitionManager: null,
 
     initializeMap: function() {
-      if (!this.map) {
-        var mapOptions = {
-          center: this.currentScene.location,
-          zoom: this.currentScene.zoom,
-          disableDefaultUI: this.disableDefaultUI
-        };
-        this.map = new google.maps.Map(this.$.map, mapOptions);
-        this.makeButton("prev", "Previous", "arrow-back",
-            google.maps.ControlPosition.BOTTOM_CENTER, this.getPrev);
-        this.makeButton("pauseAndPlay", "Pause/Play", "av:play-arrow",
-            google.maps.ControlPosition.BOTTOM_CENTER, this.pauseAndPlay);
-        this.makeButton("next", "Next", "arrow-forward",
-            google.maps.ControlPosition.BOTTOM_CENTER, this.getNext);
-        this.infowindow = new google.maps.InfoWindow;
-        this.transitionManager.map = this.map;
-        this.showMarkersChanged();
-        this.activateScene();
-        this.fire('google-map-storyboard-ready');
+      if (this.map) {
+        return;
       }
+
+      var mapOptions = {
+        center: this.currentScene.location,
+        zoom: this.currentScene.zoom,
+        disableDefaultUI: this.disableDefaultUI
+      };
+      this.map = new google.maps.Map(this.$.map, mapOptions);
+
+      this.prevButton_ = this.makeButton('prev', 'Previous', 'arrow-back');
+      this.prevButton_.addEventListener('click', this.getPrev.bind(this));
+
+      this.playButton_ = this.makeButton('pauseAndPlay', 'Pause/Play', 'av:play-arrow');
+      this.playButton_.addEventListener('click', this.pauseAndPlay.bind(this));
+
+      this.nextButton_ = this.makeButton('next', 'Next', 'arrow-forward');
+      this.nextButton_.addEventListener('click', this.getNext.bind(this));
+
+      this.infowindow = new google.maps.InfoWindow;
+      this.transitionManager.map = this.map;
+      this.showMarkersChanged();
+      this.activateScene();
+      this.fire('google-map-storyboard-ready');
+
+      var controls = this.map.controls[google.maps.ControlPosition.BOTTOM_CENTER];
+      controls.push(this.$.controls);
     },
 
     updateContent: function() {
@@ -472,10 +498,8 @@ Fired when the storybord's google map is ready to be rendered.
      * @method updateControls
      */
     updateControls: function() {
-      var button =
-          this.map.controls[google.maps.ControlPosition.BOTTOM_CENTER].getAt(1);
       var isAnimating = this.transitionManager.isAnimating();
-      button.icon = isAnimating ? "av:pause" : "av:play-arrow";
+      this.playButton_.icon = isAnimating ? "av:pause" : "av:play-arrow";
     },
 
     /**
@@ -500,19 +524,18 @@ Fired when the storybord's google map is ready to be rendered.
      * Makes a core-icon-button which is added to the map controls.
      *
      * @method makeButton
-     * @param {String} id The button's id.
-     * @param {String} title The button's title.
-     * @param {String} text The text shown inside the button.
-     * @param {google.maps.ControlPosition} controlPosition Position on the map.
-     * @param {Function} onClick The handler for a click event.
+     * @param {string} id of button
+     * @param {string} title to display on title attribute
+     * @param {string} icon from core-icons
+     * @return {!Element} created button
      */
-    makeButton: function(id, title, icon, controlPosition, onClick) {
+    makeButton: function(id, title, icon, controlPosition) {
       var button = document.createElement('core-icon-button');
       button.id = id;
       button.title = title;
       button.icon = icon;
-      google.maps.event.addDomListener(button, 'click', onClick.bind(this));
-      this.map.controls[controlPosition].push(button);
+      this.$.controls.appendChild(button);
+      return button;
     }
 
   });
