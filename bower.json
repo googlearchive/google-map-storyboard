@@ -1,0 +1,7 @@
+{
+  "name": "google-map-storyboard#gh-pages",
+  "private": true,
+  "dependencies": {
+    "google-map-storyboard": "googlemaps/google-map-storyboard#master"
+  }
+}
