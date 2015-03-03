@@ -244,7 +244,7 @@ LinearAnimationManager.prototype = {
    * The offset in the forward linear direction of the line animation.
    * (Only applies if the transition state is not idle.)
    *
-   * @{property _offset}
+   * @property {_offset}
    * @type {number}
    * @{default 0}
    */
