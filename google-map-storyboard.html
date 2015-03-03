@@ -75,6 +75,7 @@ Fired when the storybord's google map is ready to be rendered.
 
       visibility: hidden;
     }
+
     #map #controls {
       visibility: visible;  /* hidden until added to map */
     }
@@ -169,11 +170,6 @@ Fired when the storybord's google map is ready to be rendered.
      */
     transitionManager: null,
 
-    /**
-     * Initializes the map for this storyboard. This includes creating the
-     * initial UI for navigating the storyboard, and surfacing the content
-     * inside the current scene on the storyboard's Map.
-     */
     initializeMap: function() {
       if (this.map) {
         return;
@@ -187,14 +183,14 @@ Fired when the storybord's google map is ready to be rendered.
       this.map = new google.maps.Map(this.$.map, mapOptions);
 
       this.prevButton_ = this.makeButton('prev', 'Previous', 'arrow-back');
-      this.prevButton_.addEventListener('click', this.getPrev.bind(this));
+      this.prevButton_.addEventListener('click', this.previousScene.bind(this));
 
       this.playButton_ = this.makeButton('pauseAndPlay', 'Pause/Play',
           'av:play-arrow');
       this.playButton_.addEventListener('click', this.pauseAndPlay.bind(this));
 
       this.nextButton_ = this.makeButton('next', 'Next', 'arrow-forward');
-      this.nextButton_.addEventListener('click', this.getNext.bind(this));
+      this.nextButton_.addEventListener('click', this.nextScene.bind(this));
 
       this.infowindow = new google.maps.InfoWindow;
       this.transitionManager.map = this.map;
@@ -481,7 +477,7 @@ Fired when the storybord's google map is ready to be rendered.
       this.currentScene = scene;
     },
 
-    getPrev: function() {
+    previousScene: function() {
       if (this.transitionManager.hasPrev()) {
         this.infowindow.close();
         this.transitionManager.prev(this.activateScene.bind(this));
@@ -489,7 +485,7 @@ Fired when the storybord's google map is ready to be rendered.
       }
     },
 
-    getNext: function() {
+    nextScene: function() {
       if (this.transitionManager.hasNext()) {
         this.infowindow.close();
         this.transitionManager.next(this.activateScene.bind(this));
@@ -501,9 +497,9 @@ Fired when the storybord's google map is ready to be rendered.
       if (this.transitionManager.isAnimating()) {
         this.transitionManager.pause();
       } else if (this.transitionManager.getHeadingOfAnimation() < 0) {
-        this.getPrev();
+        this.previousScene();
       } else {
-        this.getNext();
+        this.nextScene();
       }
       this.updateControls();
     },
