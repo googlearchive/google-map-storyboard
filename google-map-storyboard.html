@@ -143,7 +143,7 @@ Fired when the storybord's google map is ready to be rendered.
     showMarkers: true,
 
     /**
-     * If true, removes the map's default UI controls.
+     * If true, removes the Map's default UI controls.
      *
      * @attribute {disableDefaultUI}
      * @type {boolean}
@@ -288,12 +288,12 @@ Fired when the storybord's google map is ready to be rendered.
           nextValid = this.validScenes.getAt(++validSceneIndex);
           nextScene = allScenes[++sceneIndex];
         } else if (!nextValid) {
-          // There are no more remaining scenes in valid scenes
-          // So add the next scene in allScenes to it.
+          // There are no more remaining scenes in valid scenes. Add the next
+          // scene in allScenes to it.
           insertNextScene.call(this);
         } else if (!nextScene || allScenes.indexOf(nextValid) < 0) {
           // There is no next scene in all scenes, or the scene has been removed
-          // from the dom, so remove the scene from validScenes.
+          // from the DOM, so remove the scene from validScenes.
           this.removeScene(validSceneIndex);
           nextValid = this.validScenes.getAt(validSceneIndex);
         } else {
@@ -316,7 +316,7 @@ Fired when the storybord's google map is ready to be rendered.
     },
 
     onSceneChanged: function(details) {
-      // Return if the maps API hasn't loaded yet.
+      // Return early if the maps API hasn't loaded yet.
       if (!this.validScenes) {
         return;
       }
@@ -366,8 +366,10 @@ Fired when the storybord's google map is ready to be rendered.
 
     updateScene: function(scene) {
       // If there is a new address to geocode, geocode it.
-      if (!scene.ignoreAddress) this.geocodeScene(scene);
-      // If this is the current scene, and it is invalid, find the replacement.
+      if (!scene.ignoreAddress) {
+        this.geocodeScene(scene);
+      }
+      // If this is the current scene, and it is invalid, find a replacement.
       if (scene === this.currentScene && isInvalidScene(scene)) {
         this.updateCurrentScene();
       }
@@ -537,7 +539,7 @@ Fired when the storybord's google map is ready to be rendered.
     /**
      * Makes a core-icon-button which is added to the map controls.
      *
-     * @method makeButton
+     * @method {makeButton}
      * @param {string} id of button
      * @param {string} title to display on title attribute
      * @param {string} icon from core-icons
@@ -555,10 +557,10 @@ Fired when the storybord's google map is ready to be rendered.
   });
 
   /**
-   * Checks if a scene is invalid.
-   * A scene is invalid if has an invalid address and invalid location.
+   * Checks if a scene is invalid. A scene is invalid if has both an invalid
+   * address and invalid location.
    *
-   * @method isInvalidScene
+   * @method {isInvalidScene}
    * @param {google-map-scene} scene The scene to check if it is invalid or not.
    * @returns {boolean} True if the scene has an invalid address and location.
    */
@@ -567,10 +569,10 @@ Fired when the storybord's google map is ready to be rendered.
   }
 
   /**
-   * Checks if a scene is valid.
-   * A scene is valid and well defined if it has a valid location.
+   * Checks if a scene is valid. A scene is valid and if it has a valid
+   * location.
    *
-   * @method isValidScene
+   * @method {isValidScene}
    * @param {google-map-scene} scene The scene to check if it is valid or not.
    * @returns {boolean} True if the scene has a valid location.
    */
