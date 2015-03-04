@@ -54,7 +54,6 @@ MapTransitionManager.prototype = {
   _idleListener: null,
 
   /**
-   * @method {setMap}
    * @param map {google.maps.Map} The map on which the transitions occur. Null
    *     if no map is given.
    */
@@ -63,7 +62,6 @@ MapTransitionManager.prototype = {
   },
 
   /**
-   * @method {getMap}
    * @returns {google.maps.Map} The map on which the transitions occur.
    */
   get map() {
@@ -293,7 +291,6 @@ LinearAnimationManager.prototype = {
   /**
    * Sets the map on which the polyline and map transitions occur.
    *
-   * @method {setMap}
    * @param {google.maps.Map} map The map on which the transitions occur.
    */
   set map(map) {
@@ -304,7 +301,6 @@ LinearAnimationManager.prototype = {
   },
 
   /**
-   * @method {getMap}
    * @returns {google.maps.Map} The map on which the transitions occur.
    */
   get map() {
@@ -354,7 +350,6 @@ LinearAnimationManager.prototype = {
   /**
    * Gets the length of the total path.
    *
-   * @method {getLength}
    * @return {number} The length of the total path.
    */
   get length() {
