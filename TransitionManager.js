@@ -1,22 +1,23 @@
 /*
  * Copyright 2015 Google Inc. All rights reserved.
  *
- *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this
- * file except in compliance with the License. You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy of
+ * the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software distributed under
- * the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
- * ANY KIND, either express or implied. See the License for the specific language governing
- * permissions and limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
  */
 var TransitionState = {
   ANIMATING: 'ANIMATING',
   IDLE: 'IDLE',
   PAUSED: 'PAUSED'
-}
+};
 
 /**
  * MapTransitionManager
@@ -36,33 +37,31 @@ MapTransitionManager.prototype = {
 
   /**
    * The Google Map the transitions occur on.
-   * 
-   * @property _map
-   * @type google.maps.Map
-   * @default null
+   *
+   * @property {_map}
+   * @type {google.maps.Map}
+   * @default {null}
    */
   _map: null,
 
   /**
    * The listener for the next `idle` map event - see `uponMapIdle`.
-   * 
-   * @property _idleListener
-   * @type google.maps.MapsEventListener
-   * @default null
+   *
+   * @property {_idleListener}
+   * @type {google.maps.MapsEventListener}
+   * @default {null}
    */
   _idleListener: null,
 
   /**
-   * @method set map
    * @param map {google.maps.Map} The map on which the transitions occur. Null
-   * if no map is given.
+   *     if no map is given.
    */
   set map(map) {
     this._map = (map instanceof google.maps.Map) ? map : null;
   },
 
   /**
-   * @method get map
    * @returns {google.maps.Map} The map on which the transitions occur.
    */
   get map() {
@@ -70,10 +69,10 @@ MapTransitionManager.prototype = {
   },
 
   /**
-   * @method _uponMapIdle
-   * @param {Function} handler The handler to call when the map is idle.
-   * Will replace the existing idle handler. If null, removes the current
-   * idle handler.
+   * @method {_uponMapIdle}
+   * @param {Function} handler The handler to call when the map is idle. Will
+   *     replace the existing idle handler. If null, removes the current idle
+   *     handler.
    */
   _uponMapIdle: function(handler) {
     google.maps.event.removeListener(this._idleListener);
@@ -100,13 +99,13 @@ MapTransitionManager.prototype = {
    *   - each stage [`->`] occurs when the map is `idle`
    * Note: The last location is the last valid location in the locations array.
    *
-   * @method fitBounds
-   * @param {!Array.<!google.maps.LatLng>} locations LatLngs to fit the 
-   * bounds to.
+   * @method {fitBounds}
+   * @param {!Array.<!google.maps.LatLng>} locations LatLngs to fit the bounds
+   *     to.
    * @param {boolean} panToLastLocation If true, pan to the last location given.
    * @param {Function} callback (Optional) The callback to invoke on completion
-   * of the transition. If !panToLastLocation, it is fired on the completion
-   * of fitBounds, else it is invoked after panTo.
+   *     of the transition. If !panToLastLocation, it is fired on the completion
+   *     of fitBounds, else it is invoked after panTo.
    */
   fitBounds: function(locations, panToLastLocation, callback) {
     if (!this._map) return;
@@ -134,7 +133,7 @@ MapTransitionManager.prototype = {
    * If the location or map are invalid, the transition is seen as complete,
    * so the callback is invoked.
    *
-   * @method panToScene
+   * @method {panToScene}
    * @param {google.maps.LatLng} location LatLng to pan to.
    * @param {Function} onTransitionComplete (Optional) The callback to invoke on
    * the completion of the transition.
@@ -153,9 +152,9 @@ MapTransitionManager.prototype = {
 }
 
 /**
- * @method setLast
+ * @method {setLast}
  * @param {!google.maps.Polyline} polyline The polyline to set the location on.
- * @param {!google.maps.LatLng} location The location to set at the end of the 
+ * @param {!google.maps.LatLng} location The location to set at the end of the
  * polyline.
  */
 function setLast(polyline, location) {
@@ -164,7 +163,7 @@ function setLast(polyline, location) {
 }
 
 /**
- * @method getPointOnLine
+ * @method {getPointOnLine}
  * @param {!google.maps.Polyline} polyline The polyline to get the point from.
  * @param {number} index The index of the point (single wrap around).
  * NOTE: If index < last negative path index, it returns the first point.
@@ -215,67 +214,67 @@ LinearAnimationManager.prototype = {
    *   - `PAUSED` - A line animation was paused.
    *   - `ANIMATING` - A line animation is in progress.
    *
-   * @property _state
-   * @type TransitionState
-   * @default TransitionState.IDLE
+   * @property {_state}
+   * @type {TransitionState}
+   * @default {TransitionState.IDLE}
    */
   _state: TransitionState.IDLE,
 
   /**
    * Duration of each line animation in milliseconds.
    *
-   * @property _ANIMATION_TIME_MS
-   * @type number
-   * @default 5000
+   * @property {_ANIMATION_TIME_MS}
+   * @type {number}
+   * @{default 5000}
    */
   _ANIMATION_TIME_MS: 3000,
 
   /**
    * The intervalId of the current line animation frame, if it is animated.
    *
-   * @property _intervalId
-   * @type number
-   * @default 0
+   * @property {_intervalId}
+   * @type {number}
+   * @{default 0}
    */
   _intervalId: 0,
 
   /**
    * The offset in the forward linear direction of the line animation.
    * (Only applies if the transition state is not idle.)
-   * 
-   * @property _offset
-   * @type number
-   * @default 0
+   *
+   * @property {_offset}
+   * @type {number}
+   * @{default 0}
    */
   _offset: 0,
 
   /**
    * The polyline containing the points of the previous locations
    *  - i.e. the points with index <= the current index
-   * 
-   * @property _prevLine
-   * @type google.maps.Polyline
-   * @default null
+   *
+   * @property {_prevLine}
+   * @type {google.maps.Polyline}
+   * @default {null}
    */
   _prevLine: null,
 
   /**
    * The polyline containing the points of the next locations:
    *  - i.e. the points with index >= the current index
-   * 
-   * @property _nextLine
-   * @type google.maps.Polyline
-   * @default null
+   *
+   * @property {_nextLine}
+   * @type {google.maps.Polyline}
+   * @default {null}
    */
   _nextLine: null,
 
   /**
-   * The direction of the animation.  If true, the animation is going to 
+   * The direction of the animation.  If true, the animation is going to
    * the next point on the path.
-   * 
-   * @property _forward
-   * @type boolean
-   * @default true
+   *
+   * @property {_forward}
+   * @type {boolean}
+   * @default {true}
    */
   _forward: true,
 
@@ -283,16 +282,15 @@ LinearAnimationManager.prototype = {
    * The MapTransitionManager co-ordinated by this LinearAnimationManager.
    * (So map animations and transitions are coordinated together.)
    *
-   * @property _mapTransitionManager
-   * @type MapTransitionManager
-   * @default null
+   * @property {_mapTransitionManager}
+   * @type {MapTransitionManager}
+   * @default {null}
    */
   _mapTransitionManager: null,
 
   /**
    * Sets the map on which the polyline and map transitions occur.
    *
-   * @method setMap
    * @param {google.maps.Map} map The map on which the transitions occur.
    */
   set map(map) {
@@ -303,7 +301,6 @@ LinearAnimationManager.prototype = {
   },
 
   /**
-   * @method getMap
    * @returns {google.maps.Map} The map on which the transitions occur.
    */
   get map() {
@@ -312,10 +309,10 @@ LinearAnimationManager.prototype = {
 
   /**
    * Sets the index of the current location - no line animation shown.
-   * Fits the bounds to the current active location 
+   * Fits the bounds to the current active location
    * (or line segment, if animating), and the location at the given index.
    *
-   * @method setCurrentIndex
+   * @method {setCurrentIndex}
    * @param {number} index The index of the location to set the path to.
    * @param {Function} onTransitionComplete (Optional) The callback to invoke on
    * the completion of the transition.
@@ -341,8 +338,8 @@ LinearAnimationManager.prototype = {
    * Gets the index of the current location.
    * NOTE: during animation/pause, this is the index of the upcoming location.
    *
-   * @method getCurrentIndex
-   * @returns {number} The index of the current location.
+   * @method {getCurrentIndex}
+   * @return {number} The index of the current location.
    */
   getCurrentIndex: function() {
     var index = this._prevLine.getPath().length - 1;
@@ -353,8 +350,7 @@ LinearAnimationManager.prototype = {
   /**
    * Gets the length of the total path.
    *
-   * @method get length
-   * @returns {number} The length of the total path.
+   * @return {number} The length of the total path.
    */
   get length() {
     var length = this._prevLine.getPath().length +
@@ -370,7 +366,7 @@ LinearAnimationManager.prototype = {
    *   0 : If the manager is idle, i.e. there is no animation.
    *   1 : Heading towards the next location.
    *
-   * @method getHeadingOfAnimation
+   * @method {getHeadingOfAnimation}
    * @returns {number} The heading of the animation.
    */
   getHeadingOfAnimation: function() {
@@ -382,7 +378,7 @@ LinearAnimationManager.prototype = {
    * Checks if the manager is idle.
    * It is idle if there are no line animations currently in progress or paused.
    *
-   * @method isIdle
+   * @method {isIdle}
    * @returns {boolean} True if the transition manager is idle.
    */
   isIdle: function() {
@@ -393,7 +389,7 @@ LinearAnimationManager.prototype = {
    * Checks if the manager is animating.
    * It is true if the line is animating.  False if it is idle or paused.
    *
-   * @method isAnimating
+   * @method {isAnimating}
    * @returns {boolean} True if the line is currently animating.
    */
   isAnimating: function() {
@@ -405,7 +401,7 @@ LinearAnimationManager.prototype = {
    * It is true if the line is paused and mid-animation.
    * False if it is idle or animating.
    *
-   * @method isPaused
+   * @method {isPaused}
    * @returns {boolean} True if the line is currently paused.
    */
   isPaused: function() {
@@ -415,7 +411,7 @@ LinearAnimationManager.prototype = {
   /**
    * Clears the path and stops any animations in progress.
    *
-   * @method clear
+   * @method {clear}
    */
   clear: function() {
     this._cancelAnimation();
@@ -428,8 +424,8 @@ LinearAnimationManager.prototype = {
   /**
    * Checks if the path is empty.
    *
-   * @method isEmpty
-   * @returns {boolean} True if the path is empty.
+   * @method {isEmpty}
+   * @return {boolean} True if the path is empty.
    */
   isEmpty: function() {
     return (this.length < 1);
@@ -438,10 +434,10 @@ LinearAnimationManager.prototype = {
   /**
    * Inserts the location at the given index.
    *
-   * @method insertAt
+   * @method {insertAt}
    * @param {number} index The index at which to insert the location.
-   * Note: If the index < 0, it inserts at the beginning of the path.
-   * If the index > last index, it inserts the point at the end of the path.
+   *     Note: If the index < 0, it inserts at the beginning of the path.
+   *     If the index > last index, it inserts the point at the end of the path.
    * @param {google.maps.LatLng} location The location to insert.
    */
   insertAt: function(index, location) {
@@ -469,7 +465,7 @@ LinearAnimationManager.prototype = {
    * Sets the location at the given index.
    * Note: if the index is out of range [0, last index], it does nothing.
    *
-   * @method setAt
+   * @method {setAt}
    * @param {number} index The positive index at which to set the location.
    * @param {!google.maps.LatLng} location The location to set.
    */
@@ -505,11 +501,11 @@ LinearAnimationManager.prototype = {
    *   - if it is the last (or first) index and the manager is animating
    *     from/to this index.
    *
-   * @method isUpdateRequiredIfRemoveAt
+   * @method {isUpdateRequiredIfRemoveAt}
    * @param {number} index The index to check if an update is required if it is
    * removed.  Note: If the index < 0, it checks at the beginning of the path.
    * It is an invalid index if the index > last index, so no update is required.
-   * @returns {boolean} True if one of the above conditions is satisfied.
+   * @return {boolean} True if one of the above conditions is satisfied.
    */
   isUpdateRequiredIfRemoveAt: function(index) {
     var totalLength = this.length;
@@ -537,9 +533,9 @@ LinearAnimationManager.prototype = {
    * The 'most adjacent position' is at the previous index, if it has a previous
    * location, otherwise it is the next location.
    *
-   * @method removeAt
+   * @method {removeAt}
    * @param {number} index The index at which to remove the location.
-   * Note: If the index < 0, it removes at the beginning of the path.
+   *     Note: If the index < 0, it removes at the beginning of the path.
    * If the index > last index, it does nothing.
    */
   removeAt: function(index) {
@@ -577,7 +573,7 @@ LinearAnimationManager.prototype = {
   /**
    * Makes a polyline with the given opacity.
    *
-   * @method makePolyline
+   * @method {makePolyline}
    * @param {number} opacity The opacity of the polyline.
    * @returns {google.maps.Polyline} The polyline created.
    */
@@ -602,7 +598,7 @@ LinearAnimationManager.prototype = {
   },
 
   /**
-   * @method hasNext
+   * @method {hasNext}
    * @returns {boolean} If true, the line has a next location.
    */
   hasNext: function() {
@@ -614,7 +610,7 @@ LinearAnimationManager.prototype = {
   },
 
   /**
-   * @method hasPrev
+   * @method {hasPrev}
    * @returns {boolean} If true, the line has a previous location.
    */
   hasPrev: function() {
@@ -628,9 +624,9 @@ LinearAnimationManager.prototype = {
   /**
    * Animates the line to the next location.
    *
-   * @method next
-   * @param {Function} onTransitionComplete (Optional) The callback to invoke on
-   * the completion of the map transition and line animation.
+   * @method {next}
+   * @param {Function} onTransitionComplete The callback to invoke on the
+   *     completion of the map transition and line animation.
    */
   next: function(onTransitionComplete) {
     if (!this.hasNext()) return;
@@ -640,9 +636,9 @@ LinearAnimationManager.prototype = {
   /**
    * Animates the line to the previous location.
    *
-   * @method prev
+   * @method {prev}
    * @param {Function} onTransitionComplete (Optional) The callback to invoke on
-   * the completion of the map transition and line animation.
+   *     the completion of the map transition and line animation.
    */
   prev: function(onTransitionComplete) {
     if (!this.hasPrev()) return;
@@ -652,7 +648,7 @@ LinearAnimationManager.prototype = {
   /**
    * Pauses the polyline animation (if there is an animation in progress).
    *
-   * @method pause
+   * @method {pause}
    */
   pause: function() {
     if (this.isIdle()) return;
@@ -664,7 +660,7 @@ LinearAnimationManager.prototype = {
   /**
    * Pans to the animating line segment if the line is currently animating.
    *
-   * @method _panToAnimatingLineSegment
+   * @method {_panToAnimatingLineSegment}
    */
   _panToAnimatingLineSegment: function() {
     if (!this.isAnimating()) return;
@@ -676,12 +672,12 @@ LinearAnimationManager.prototype = {
    * Updates the waypoint of the polyline if it is not idle.
    * This is used during animations and if the polyline is paused
    *
-   * @method _updateWaypoint
+   * @method {_updateWaypoint}
    */
   _updateWaypoint: function() {
     if (this.isIdle()) return;
     var wayPoint = new google.maps.geometry.spherical.interpolate(
-        getPointOnLine(this._prevLine, - 2), 
+        getPointOnLine(this._prevLine, - 2),
         getPointOnLine(this._nextLine, - 2), this._offset);
     setLast(this._nextLine, wayPoint);
     setLast(this._prevLine, wayPoint);
@@ -691,7 +687,7 @@ LinearAnimationManager.prototype = {
    * Starts a line animation moving to the next, or the previous.
    * If another line animation/transition is in progress, stop it.
    *
-   * @method _startAnimation
+   * @method {_startAnimation}
    * @param {boolean} forward If true, animates to the next location, otherwise
    * animates to the previous location.
    * @param {Function} onTransitionComplete (Optional) The callback to invoke on
@@ -732,7 +728,7 @@ LinearAnimationManager.prototype = {
         this.finishAnimation(true, onTransitionComplete);
         return;
       }
-      
+
       this._offset = this._forward ? fromOffset : (1 - fromOffset);
       this._updateWaypoint();
 
@@ -745,7 +741,7 @@ LinearAnimationManager.prototype = {
    * Cancels the current animation frame.
    * NOTE: It does not update the manager's state, nor touch the polyline.
    *
-   * @method _cancelAnimation
+   * @method {_cancelAnimation}
    */
   _cancelAnimation: function() {
     if (this.isIdle()) return;
@@ -756,11 +752,12 @@ LinearAnimationManager.prototype = {
   /**
    * Completes the current line animation, if there is one in progress.
    *
-   * @method finishAnimation
+   * @method {finishAnimation}
    * @param {boolean} finishTransition If true, finishes default transition.
-   * @param {Function} onTransitionComplete (Optional) The callback to invoke on
-   * the completion of the transition. If finishTransition is true, it is
-   * invoked on the completion of the pan, else once the animation is finished.
+   * @param {Function} onTransitionComplete The callback to invoke on the
+   *     completion of the transition. If finishTransition is true, it is
+   *     invoked on the completion of the pan, else once the animation is
+   *     finished.
    */
   finishAnimation: function(finishTransition, onTransitionComplete) {
     if (this.isIdle()) return;
@@ -777,4 +774,4 @@ LinearAnimationManager.prototype = {
       onTransitionComplete();
     }
   }
-}
+};

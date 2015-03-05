@@ -1,11 +1,11 @@
 <!--
 Copyright 2015 Google Inc. All rights reserved.
- 
+
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this
 file except in compliance with the License. You may obtain a copy of the License at
 
       http://www.apache.org/licenses/LICENSE-2.0
- 
+
 Unless required by applicable law or agreed to in writing, software distributed under
 the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
 ANY KIND, either express or implied. See the License for the specific language governing
@@ -75,6 +75,7 @@ Fired when the storybord's google map is ready to be rendered.
 
       visibility: hidden;
     }
+
     #map #controls {
       visibility: visible;  /* hidden until added to map */
     }
@@ -95,40 +96,40 @@ Fired when the storybord's google map is ready to be rendered.
   Polymer({
 
     /**
-     * Array of the google-map-scenes contained within the storyboard.
-     * 
-     * @property validScenes
-     * @type google.maps.MVCArray.<google-map-scene>
-     * @default null
+     * A MVCArray of google-map-scenes contained within this storyboard.
+     *
+     * @property {validScenes}
+     * @type {google.maps.MVCArray}
+     * @default {null}
      */
     validScenes: null,
 
     /**
-     * The google map used in the storyboard.
-     * 
-     * @property map
-     * @type google.maps.Map
-     * @default null
+     * The Google Map used by this storyboard.
+     *
+     * @property {map}
+     * @type {google.maps.Map}
+     * @default {null}
      */
     map: null,
 
     /**
-     * The Google Map API key. To obtain an API key, 
+     * The Google Map API key. To obtain an API key,
      * see developers.google.com/maps/documentation/javascript/tutorial#api_key.
-     * 
-     * @attribute apiKey
-     * @type string
-     * @default null
+     *
+     * @attribute {apiKey}
+     * @type {string}
+     * @default {null}
      */
     apiKey: null,
 
     publish: {
       /**
        * The id of the scene to be shown.
-       * 
-       * @attribute current
-       * @type String
-       * @default null
+       *
+       * @attribute {current}
+       * @type {?string}
+       * @default {null}
        */
       current: {value: null, reflect: true}
     },
@@ -136,36 +137,36 @@ Fired when the storybord's google map is ready to be rendered.
     /**
      * If true, there is a marker shown at each scene.
      *
-     * @attribute showMarkers
-     * @type boolean
-     * @default true
+     * @attribute {showMarkers}
+     * @type {boolean}
+     * @default {true}
      */
     showMarkers: true,
 
     /**
      * If true, removes the map's default UI controls.
      *
-     * @attribute disableDefaultUI
-     * @type boolean
-     * @default true
+     * @attribute {disableDefaultUI}
+     * @type {boolean}
+     * @default {true}
      */
     disableDefaultUI: true,
 
     /**
      * The current scene. Initialised to the first scene.
      *
-     * @property currentScene
-     * @type google-map-scene
-     * @default null
+     * @property {currentScene}
+     * @type {google-map-scene}
+     * @default {null}
      */
     currentScene: null,
 
     /**
      * The storyboard's transition and animation manager.
      *
-     * @property transitionManager
-     * @type LinearAnimationManager
-     * @default null
+     * @property {transitionManager}
+     * @type {LinearAnimationManager}
+     * @default {null}
      */
     transitionManager: null,
 
@@ -182,13 +183,14 @@ Fired when the storybord's google map is ready to be rendered.
       this.map = new google.maps.Map(this.$.map, mapOptions);
 
       this.prevButton_ = this.makeButton('prev', 'Previous', 'arrow-back');
-      this.prevButton_.addEventListener('click', this.getPrev.bind(this));
+      this.prevButton_.addEventListener('click', this.previousScene.bind(this));
 
-      this.playButton_ = this.makeButton('pauseAndPlay', 'Pause/Play', 'av:play-arrow');
+      this.playButton_ = this.makeButton('pauseAndPlay', 'Pause/Play',
+          'av:play-arrow');
       this.playButton_.addEventListener('click', this.pauseAndPlay.bind(this));
 
       this.nextButton_ = this.makeButton('next', 'Next', 'arrow-forward');
-      this.nextButton_.addEventListener('click', this.getNext.bind(this));
+      this.nextButton_.addEventListener('click', this.nextScene.bind(this));
 
       this.infowindow = new google.maps.InfoWindow;
       this.transitionManager.map = this.map;
@@ -196,8 +198,8 @@ Fired when the storybord's google map is ready to be rendered.
       this.activateScene();
       this.fire('google-map-storyboard-ready');
 
-      var controls = this.map.controls[google.maps.ControlPosition.BOTTOM_CENTER];
-      controls.push(this.$.controls);
+      this.map.controls[google.maps.ControlPosition.BOTTOM_CENTER]
+          .controls.push(this.$.controls);
     },
 
     updateContent: function() {
@@ -207,24 +209,21 @@ Fired when the storybord's google map is ready to be rendered.
       var contentNo = 1;
       if (currentNode) {
         contentString = currentNode instanceof HTMLImageElement ?
-          currentNode.outerHTML : 
+          currentNode.outerHTML :
           currentNode.textContent;
-      }
-      this.infowindow.setContent(contentString +
-          '<div style="text-align: center"><p>' +
-          contentNo + ' of ' +
-          this.currentScene.childElementCount + '</p></div>');
-      if (this.currentScene.marker) {
-        if (currentNode) {
-          this.infowindow.open(this.map, this.currentScene.marker);
+        this.infowindow.setContent(contentString +
+            '<div style="text-align: center"><p>' +
+            contentNo + ' of ' +
+            this.currentScene.childElementCount + '</p></div>');
+        var anchor = this.currentScene.marker || null;
+        if (!anchor) {
+          this.infowindow.setPosition(this.currentScene.location);
         }
-      } else {
-        this.infowindow.setPosition(this.currentScene.location);
-        if (currentNode) {
-          this.infowindow.open(this.map);
-        }
+        this.infowindow.open(this.map, anchor);
       }
-      google.maps.event.addListener(this.currentScene.marker, 'click', changeContent.bind(this));
+
+      google.maps.event.addListener(this.currentScene.marker, 'click',
+          changeContent.bind(this));
       function changeContent() {
         if (!this.infowindow.getMap()) {
           if (currentNode) {
@@ -254,7 +253,7 @@ Fired when the storybord's google map is ready to be rendered.
     },
 
     mapAPILoaded: function() {
-      this.transitionManager = this.transitionManager || 
+      this.transitionManager = this.transitionManager ||
           new LinearAnimationManager(this.map);
       this.validScenes = this.validScenes || new google.maps.MVCArray();
       this.initializeScenes();
@@ -278,24 +277,24 @@ Fired when the storybord's google map is ready to be rendered.
         scenesToUpdate.push(nextScene);
         nextScene = allScenes[++sceneIndex];
       }
-      while (sceneIndex < allScenes.length || 
+      while (sceneIndex < allScenes.length ||
           validSceneIndex < this.validScenes.length) {
         if (nextValid === nextScene) {
           // The scene is at the right location in the array.
           nextValid = this.validScenes.getAt(++validSceneIndex);
           nextScene = allScenes[++sceneIndex];
         } else if (!nextValid) {
-          // There are no more remaining scenes in valid scenes
-          // So add the next scene in allScenes to it.
+          // There are no more remaining scenes in valid scenes. Add the next
+          // scene in allScenes to it.
           insertNextScene.call(this);
         } else if (!nextScene || allScenes.indexOf(nextValid) < 0) {
           // There is no next scene in all scenes, or the scene has been removed
-          // from the dom, so remove the scene from validScenes.
+          // from the DOM, so remove the scene from validScenes.
           this.removeScene(validSceneIndex);
           nextValid = this.validScenes.getAt(validSceneIndex);
         } else {
           var indexOfNextSceneInValid = this.validScenes.indexOf(nextScene);
-          if (indexOfNextSceneInValid != 
+          if (indexOfNextSceneInValid !=
               this.transitionManager.getCurrentIndex()) {
             if (indexOfNextSceneInValid >= 0) {
               this.removeScene(indexOfNextSceneInValid);
@@ -313,8 +312,10 @@ Fired when the storybord's google map is ready to be rendered.
     },
 
     onSceneChanged: function(details) {
-      // Return if the maps API hasn't loaded yet.
-      if (!this.validScenes) return;
+      // Return early if the maps API hasn't loaded yet.
+      if (!this.validScenes) {
+        return;
+      }
       var scene = details.srcElement;
       this.updateScene(scene);
     },
@@ -335,7 +336,7 @@ Fired when the storybord's google map is ready to be rendered.
     },
 
     /**
-     * @method insertScene
+     * @method {insertScene}
      * @param {number} index The index at which to insert the scene.
      * If it is < 0, calculate the index.
      * @param {google-map-scene} scene
@@ -346,7 +347,7 @@ Fired when the storybord's google map is ready to be rendered.
         var allScenes = Array.prototype.slice.call(
             this.$.scenes.getDistributedNodes());
         var nextValid = this.validScenes.getAt(0);
-        for (var i = 0, nextScene; nextValid, nextScene = allScenes[i], 
+        for (var i = 0, nextScene; nextValid, nextScene = allScenes[i],
             nextScene != scene; ++i) {
           if (nextValid === nextScene) {
             nextValid = this.validScenes.getAt(++index);
@@ -361,12 +362,17 @@ Fired when the storybord's google map is ready to be rendered.
 
     updateScene: function(scene) {
       // If there is a new address to geocode, geocode it.
-      if (!scene.ignoreAddress) this.geocodeScene(scene);
-      // If this is the current scene, and it is invalid, find the replacement.
+      if (!scene.ignoreAddress) {
+        this.geocodeScene(scene);
+      }
+      // If this is the current scene, and it is invalid, find a replacement.
       if (scene === this.currentScene && isInvalidScene(scene)) {
         this.updateCurrentScene();
       }
-      if (!isValidScene(scene)) return;
+
+      if (!isValidScene(scene)) {
+        return;
+      }
       var sceneIndex = this.validScenes.indexOf(scene);
       // If the scene is not already in validScenes, insert it.
       if (sceneIndex < 0) {
@@ -377,7 +383,9 @@ Fired when the storybord's google map is ready to be rendered.
 
       // If the map is initialized, update the markers and the controls.
       if (!this.map) {
-        if (scene != this.currentScene) return;
+        if (scene != this.currentScene) {
+          return;
+        }
         this.transitionManager.setCurrentIndex(sceneIndex, null);
         this.initializeMap();
         return;
@@ -385,28 +393,30 @@ Fired when the storybord's google map is ready to be rendered.
     },
 
     geocodeScene: function(scene) {
-      if (scene.ignoreAddress || !scene.address) return;
+      if (scene.ignoreAddress || !scene.address) {
+        return;
+      }
       var address = scene.address.valueOf();
       this.geocoder = this.geocoder || new google.maps.Geocoder();
-      this.geocoder.geocode({address: address}, 
+      this.geocoder.geocode({address: address},
           function(place, status) {
         // Set ignore the address to true if the address hasn't changed.
         scene.ignoreAddress = (address === scene.address);
         if (status == google.maps.GeocoderStatus.OK) {
           scene.location = place[0].geometry.location;
         } else {
-          scene.warn("Address %s failed to geocode due to %s. It " +
-              "is shown at location %s.", address, status, scene.location);
+          scene.warn('Address %s failed to geocode due to %s. It ' +
+              'is shown at location %s.', address, status, scene.location);
         }
       }.bind(this));
     },
 
     /**
-     * If the currentScene is invalid, finds the next (consecutive) non-invalid 
-     * currentScene.  A scene is non-invalid if the address is being geocoded, 
+     * If the currentScene is invalid, finds the next (consecutive) non-invalid
+     * currentScene.  A scene is non-invalid if the address is being geocoded,
      * or it has a valid location.
      *
-     * @method updateCurrentScene
+     * @method {updateCurrentScene}
      */
     updateCurrentScene: function() {
       if (isValidScene(this.currentScene)) return;
@@ -419,11 +429,14 @@ Fired when the storybord's google map is ready to be rendered.
         var scene = allScenes[(i + index) % allScenes.length];
         if (!isInvalidScene(scene)) {
           this.currentScene = scene;
-          if (scene.location) this.updateScene(scene);
+          if (scene.location) {
+            this.updateScene(scene);
+          }
           return;
         }
       }
-      this.warn("Warning! All scenes in this storyboard are currently invalid.");
+      this.warn(
+          'Warning! All scenes in this storyboard are currently invalid.');
     },
 
     warn: function() {
@@ -464,7 +477,7 @@ Fired when the storybord's google map is ready to be rendered.
       this.currentScene = scene;
     },
 
-    getPrev: function() {
+    previousScene: function() {
       if (this.transitionManager.hasPrev()) {
         this.infowindow.close();
         this.transitionManager.prev(this.activateScene.bind(this));
@@ -472,7 +485,7 @@ Fired when the storybord's google map is ready to be rendered.
       }
     },
 
-    getNext: function() {
+    nextScene: function() {
       if (this.transitionManager.hasNext()) {
         this.infowindow.close();
         this.transitionManager.next(this.activateScene.bind(this));
@@ -480,14 +493,13 @@ Fired when the storybord's google map is ready to be rendered.
       }
     },
 
-
     pauseAndPlay: function() {
       if (this.transitionManager.isAnimating()) {
         this.transitionManager.pause();
       } else if (this.transitionManager.getHeadingOfAnimation() < 0) {
-        this.getPrev();
+        this.previousScene();
       } else {
-        this.getNext();
+        this.nextScene();
       }
       this.updateControls();
     },
@@ -495,17 +507,17 @@ Fired when the storybord's google map is ready to be rendered.
     /**
      * Updates the pause and play control.
      *
-     * @method updateControls
+     * @method {updateControls}
      */
     updateControls: function() {
       var isAnimating = this.transitionManager.isAnimating();
-      this.playButton_.icon = isAnimating ? "av:pause" : "av:play-arrow";
+      this.playButton_.icon = isAnimating ? 'av:pause' : 'av:play-arrow';
     },
 
     /**
      * Activates the upcoming scene.
      *
-     * @method activateScene
+     * @method {activateScene}
      */
     activateScene: function() {
       if (this.map && this.transitionManager.isIdle()) {
@@ -523,7 +535,7 @@ Fired when the storybord's google map is ready to be rendered.
     /**
      * Makes a core-icon-button which is added to the map controls.
      *
-     * @method makeButton
+     * @method {makeButton}
      * @param {string} id of button
      * @param {string} title to display on title attribute
      * @param {string} icon from core-icons
@@ -541,10 +553,10 @@ Fired when the storybord's google map is ready to be rendered.
   });
 
   /**
-   * Checks if a scene is invalid.
-   * A scene is invalid if has an invalid address and invalid location.
+   * Checks if a scene is invalid. A scene is invalid if has both an invalid
+   * address and invalid location.
    *
-   * @method isInvalidScene
+   * @method {isInvalidScene}
    * @param {google-map-scene} scene The scene to check if it is invalid or not.
    * @returns {boolean} True if the scene has an invalid address and location.
    */
@@ -553,10 +565,10 @@ Fired when the storybord's google map is ready to be rendered.
   }
 
   /**
-   * Checks if a scene is valid.
-   * A scene is valid and well defined if it has a valid location.
+   * Checks if a scene is valid. A scene is valid and if it has a valid
+   * location.
    *
-   * @method isValidScene
+   * @method {isValidScene}
    * @param {google-map-scene} scene The scene to check if it is valid or not.
    * @returns {boolean} True if the scene has a valid location.
    */
