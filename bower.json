@@ -1,5 +1,5 @@
 {
-  "name":"google-map-storyboard",
+  "name": "google-map-storyboard",
   "main": [
     "google-map-storyboard.html",
     "google-map-scene.html",
