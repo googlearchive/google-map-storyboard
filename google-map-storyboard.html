@@ -199,8 +199,8 @@ Fired when the storybord's google map is ready to be rendered.
       this.activateScene();
       this.fire('google-map-storyboard-ready');
 
-      this.map.controls[google.maps.ControlPosition.BOTTOM_CENTER]
-          .controls.push(this.$.controls);
+      this.map.controls[google.maps.ControlPosition.BOTTOM_CENTER].
+          push(this.$.controls);
     },
 
     updateContent: function() {
