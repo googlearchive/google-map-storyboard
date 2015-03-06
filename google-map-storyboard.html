@@ -255,9 +255,9 @@ Fired when the storybord's google map is ready to be rendered.
 
     mapAPILoaded: function() {
       if (!this.apiKey) {
-        console.error('You\'re using Storyboard without an API key. Please' +
+        throw 'You\'re using Storyboard without an API key. Please' +
             ' obtain one at ' +
-            'developers.google.com/maps/documentation/javascript/tutorial#api_key');
+            'developers.google.com/maps/documentation/javascript/tutorial#api_key';
       }
       this.transitionManager = this.transitionManager ||
           new LinearAnimationManager(this.map);
