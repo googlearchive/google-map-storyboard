@@ -21,7 +21,7 @@ The 'google-map-storyboard' renders a Google Map with 'google-map-scene' element
         height: 600px;
       }
     </style>
-    <google-map-storyboard>
+    <google-map-storyboard apiKey="YOUR_KEY_HERE">
       <google-map-scene address="Sydney, Australia" zoom="5">
         <div>This is Sydney!</div>
         <img src="image.png">
@@ -116,6 +116,7 @@ Fired when the storybord's google map is ready to be rendered.
     /**
      * The Google Map API key. To obtain an API key,
      * see developers.google.com/maps/documentation/javascript/tutorial#api_key.
+     * A key is required for Storyboard to work correctly.
      *
      * @attribute {apiKey}
      * @type {string}
@@ -253,6 +254,11 @@ Fired when the storybord's google map is ready to be rendered.
     },
 
     mapAPILoaded: function() {
+      if (!this.apiKey) {
+        console.error('You\'re using Storyboard without an API key. Please' +
+            ' obtain one at ' +
+            'developers.google.com/maps/documentation/javascript/tutorial#api_key');
+      }
       this.transitionManager = this.transitionManager ||
           new LinearAnimationManager(this.map);
       this.validScenes = this.validScenes || new google.maps.MVCArray();
