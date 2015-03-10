@@ -28,11 +28,11 @@
     "web-component-tester": "Polymer/web-component-tester#^1.1.2"
   },
   "homepage": "https://github.com/googlemaps/google-map-storyboard",
-  "_release": "1cef206ff9",
+  "_release": "f2fee86d6a",
   "_resolution": {
     "type": "branch",
     "branch": "master",
-    "commit": "1cef206ff95ffc39849396549dd2d6a7cf561776"
+    "commit": "f2fee86d6aa3a5998c37074be340ab97b1aeb642"
   },
   "_source": "git://github.com/googlemaps/google-map-storyboard.git",
   "_target": "master",
